@@ -44,7 +44,7 @@ async def retrieve(question: str, tenant_id: str, *, transport=None) -> list[dic
                        "text": hit["text"][:4000]})
     return result
 
-async def evaluate_answer(answer: str, reference: str, job_id: str, *, transport=None) -> dict:
+async def evaluate_answer(answer: str, reference: str, job_id: str, *, latency_ms: float = 0.0, transport=None) -> dict:
     url = os.getenv("EVAL_SERVICE_URL", "").rstrip("/")
     key = os.getenv("EVAL_SERVICE_API_KEY", "")
     if not url or not key:
@@ -54,7 +54,7 @@ async def evaluate_answer(answer: str, reference: str, job_id: str, *, transport
     async with httpx.AsyncClient(timeout=httpx.Timeout(10.0), transport=transport, trust_env=False) as client:
         response = await client.post(
             f"{url}/v1/evaluate", headers={"x-api-key": key},
-            json={"cases": [{"id": job_id, "prediction": answer, "reference": reference, "latency_ms": 0}]}
+            json={"cases": [{"id": job_id, "prediction": answer, "reference": reference, "latency_ms": latency_ms}]}
         )
         response.raise_for_status()
         body = response.json()
