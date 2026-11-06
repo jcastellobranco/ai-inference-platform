@@ -5,6 +5,7 @@ or provider credential is embedded in the repository.
 """
 import os
 import re
+from urllib.parse import urlparse
 import httpx
 
 class GroundingError(ValueError):
@@ -37,14 +38,20 @@ async def generate_answer(question: str, evidence: list[dict], *, transport=None
     url = os.getenv("GENERATION_API_URL", "").rstrip("/")
     api_key = os.getenv("GENERATION_API_KEY", "")
     model = os.getenv("GENERATION_MODEL", "")
-    if not url.startswith(("https://", "http://")) or not api_key or not model:
-        raise RuntimeError("Generation URL, key and model must be configured")
-    messages = grounded_messages(question, evidence)
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or parsed.hostname != "api.openai.com" or parsed.port is not None or parsed.username or parsed.password or parsed.query or parsed.fragment or parsed.path.rstrip("/") != "/v1":
+        raise RuntimeError("Generation provider must be https://api.openai.com/v1")
+    if not api_key or not model:
+        raise RuntimeError("Generation key and model must be configured")
+    max_output = int(os.getenv("GENERATION_MAX_OUTPUT_TOKENS", "500"))
+    if not 64 <= max_output <= 2048:
+        raise RuntimeError("GENERATION_MAX_OUTPUT_TOKENS must be between 64 and 2048")
+    messages = grounded_messages(question, evidence[:5])
     async with httpx.AsyncClient(timeout=httpx.Timeout(40.0), transport=transport, trust_env=False) as client:
         response = await client.post(
             f"{url}/chat/completions",
             headers={"Authorization": f"Bearer {api_key}"},
-            json={"model": model, "messages": messages, "temperature": 0},
+            json={"model": model, "messages": messages, "max_completion_tokens": max_output},
         )
         response.raise_for_status()
         data = response.json()
@@ -53,4 +60,7 @@ async def generate_answer(question: str, evidence: list[dict], *, transport=None
     except (KeyError, IndexError, TypeError) as exc:
         raise ValueError("Unexpected generation provider response") from exc
     citation_numbers = validate_citations(answer, len(evidence))
-    return {"answer": answer, "citation_numbers": citation_numbers, "model": model}
+    usage = data.get("usage") or {}
+    return {"answer": answer, "citation_numbers": citation_numbers, "model": model,
+            "usage": {"input_tokens": usage.get("prompt_tokens"),
+                      "output_tokens": usage.get("completion_tokens")}}
