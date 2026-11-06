@@ -28,7 +28,8 @@ services:
         psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/003_seed.sql &&
         psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/004_durable_jobs.sql &&
         psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/005_worker.sql &&
-        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/006_retry_state.sql
+        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/006_retry_state.sql &&
+        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/007_rag_jobs.sql
     restart: "no"
   backend:
     build:
@@ -39,6 +40,11 @@ services:
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET to a random 32+ character value}
       JWT_ISSUER: portfolio-dev
       JWT_AUDIENCE: ai-platform
+      RAG_SERVICE_TENANT_ID: ${RAG_SERVICE_TENANT_ID:-}
+      RAG_SERVICE_URL: ${RAG_SERVICE_URL:-}
+      RAG_SERVICE_API_KEY: ${RAG_SERVICE_API_KEY:-}
+      EVAL_SERVICE_URL: ${EVAL_SERVICE_URL:-}
+      EVAL_SERVICE_API_KEY: ${EVAL_SERVICE_API_KEY:-}
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -49,6 +55,11 @@ services:
     command: ["python", "-m", "app.worker"]
     environment:
       WORKER_DATABASE_URL: postgresql+psycopg://platform_worker:local-worker-development-only@db:5432/platform
+      RAG_SERVICE_TENANT_ID: ${RAG_SERVICE_TENANT_ID:-}
+      RAG_SERVICE_URL: ${RAG_SERVICE_URL:-}
+      RAG_SERVICE_API_KEY: ${RAG_SERVICE_API_KEY:-}
+      EVAL_SERVICE_URL: ${EVAL_SERVICE_URL:-}
+      EVAL_SERVICE_API_KEY: ${EVAL_SERVICE_API_KEY:-}
     depends_on:
       migrate:
         condition: service_completed_successfully
