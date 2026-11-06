@@ -1,47 +1,56 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { AccessTokenPanel } from './components/AccessTokenPanel';
-import { JobForm } from './components/JobForm';
-import { JobsTable } from './components/JobsTable';
+import { AccessDialog } from './components/AccessDialog';
+import { AppShell, type View } from './components/AppShell';
 import { useJobs } from './hooks/useJobs';
-import { jobsApi } from './lib/api';
-import type { JobType } from './types/jobs';
+import { useKnowledge } from './hooks/useKnowledge';
+import { DocumentsPage } from './pages/DocumentsPage';
+import { JobsPage } from './pages/JobsPage';
+import { OverviewPage } from './pages/OverviewPage';
+import { PlaygroundPage } from './pages/PlaygroundPage';
 import './style.css';
 
 function App() {
+  const [view, setView] = useState<View>('overview');
   const [token, setToken] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submissionError, setSubmissionError] = useState<string | null>(null);
-  const { jobs, isLoading, error, refresh } = useJobs(token);
+  const [showAccess, setShowAccess] = useState(false);
+  const { jobs, isLoading: jobsLoading, error: jobsError, refresh: refreshJobs } = useJobs(token);
+  const knowledge = useKnowledge(token);
+  const connected = Boolean(token.trim());
 
-  async function submit(type: JobType, prompt: string, reference: string) {
-    setIsSubmitting(true);
-    setSubmissionError(null);
-    try {
-      if (type === 'rag') await jobsApi.createRag(token, prompt, reference || undefined);
-      else await jobsApi.createInference(token, prompt);
-      await refresh();
-    } catch (failure: unknown) {
-      setSubmissionError(failure instanceof Error ? failure.message : 'Job submission failed');
-    } finally {
-      setIsSubmitting(false);
+  useEffect(() => {
+    if (connected) {
+      void refreshJobs();
+      void knowledge.refresh();
     }
-  }
+    // Explicitly refresh when the identity changes, not on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
-  return <main>
-    <header className="page-header">
-      <p className="eyebrow">Developer console</p>
-      <h1>AI Platform Console</h1>
-      <p>Tenant-isolated inference jobs, document retrieval and evaluation.</p>
-    </header>
-    <AccessTokenPanel token={token} onTokenChange={setToken} onLoad={() => void refresh()}
-      isLoading={isLoading} />
-    <JobForm disabled={!token.trim()} isSubmitting={isSubmitting} onSubmit={submit} />
-    {(error || submissionError) && <p className="alert" role="alert">{submissionError || error}</p>}
-    <JobsTable jobs={jobs} isLoading={isLoading} onRefresh={() => void refresh()}
-      disabled={!token.trim()} />
-    <footer>Developer preview · JWT is held in memory only · No production login flow</footer>
-  </main>;
+  useEffect(() => {
+    if (!connected || !jobs.some(job => ['queued', 'running', 'retrying'].includes(job.status))) return;
+    const interval = setInterval(() => { void refreshJobs(); }, 4000);
+    return () => clearInterval(interval);
+  }, [connected, jobs, refreshJobs]);
+
+  const openAccess = () => setShowAccess(true);
+  return <>
+    <AppShell view={view} onNavigate={setView} connected={connected} onOpenAccess={openAccess}>
+      {(jobsError && view === 'overview') && <div className="global-alert" role="alert">{jobsError}</div>}
+      {(knowledge.error && view === 'overview') && <div className="global-alert" role="alert">{knowledge.error}</div>}
+      {view === 'overview' && <OverviewPage jobs={jobs} documents={knowledge.documents} connected={connected}
+        navigate={setView} openAccess={openAccess}/>}
+      {view === 'documents' && <DocumentsPage token={token} connected={connected}
+        documents={knowledge.documents} loading={knowledge.loading} busy={knowledge.busy} error={knowledge.error}
+        mutate={knowledge.mutate} refresh={knowledge.refresh} openAccess={openAccess}/>}
+      {view === 'playground' && <PlaygroundPage token={token} connected={connected} jobs={jobs}
+        refreshJobs={refreshJobs} openAccess={openAccess}/>}
+      {view === 'jobs' && <JobsPage token={token} connected={connected} jobs={jobs} loading={jobsLoading}
+        onRefresh={refreshJobs} openAccess={openAccess}/>}
+    </AppShell>
+    {showAccess && <AccessDialog token={token} onChange={setToken} onClose={() => setShowAccess(false)}
+      onConnected={() => {}}/>}
+  </>;
 }
 
 createRoot(document.getElementById('root')!).render(
