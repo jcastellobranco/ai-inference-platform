@@ -44,15 +44,21 @@ def claim_job(sessions):
 def finish_job(sessions, job, *, result=None, error=None):
     """Fencing token prevents a timed-out former worker from overwriting a new lease."""
     with sessions.begin() as db:
+        status = "completed" if error is None else ("retrying" if job["attempts"] < MAX_ATTEMPTS else "failed")
+        # Retry time is persisted: retries must not become stranded with a NULL lease.
+        retry_delay = min(60, 2 ** min(job["attempts"] - 1, 6))
         updated = db.execute(text("""
             UPDATE jobs SET status=:status, result=:result, error=:error,
-                leased_until=NULL, finished_at=now()
+                leased_until=CASE WHEN :status='retrying'
+                    THEN now() + (:retry_delay * interval '1 second') ELSE NULL END,
+                finished_at=CASE WHEN :status='retrying' THEN NULL ELSE now() END,
+                lease_token=NULL, worker_id=NULL
             WHERE id=:id AND tenant_id=:tenant AND worker_id=:worker
               AND lease_token=:token AND status='running' AND leased_until > now()
-        """), {"status": "completed" if error is None else ("retrying" if job["attempts"] < MAX_ATTEMPTS else "failed"),
-               "result": result, "error": error, "id": job["id"],
+        """), {"status": status, "result": result, "error": error,
+               "retry_delay": retry_delay, "id": job["id"],
                "tenant": job["tenant_id"], "worker": WORKER_ID,
-               "token": job["lease_token"], "attempts": job["attempts"]}).rowcount
+               "token": job["lease_token"]}).rowcount
         return updated == 1
 
 def expire_exhausted(sessions):
