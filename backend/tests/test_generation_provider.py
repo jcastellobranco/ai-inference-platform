@@ -70,3 +70,47 @@ def test_explicit_insufficient_evidence_does_not_invent_citation(monkeypatch):
     result = asyncio.run(generate_answer("Unknown?", EVIDENCE, transport=transport))
     assert result["citation_numbers"] == []
     assert result["answer"] == "Insufficient retrieved evidence to answer."
+
+
+def test_uncited_answer_is_repaired_once(monkeypatch):
+    monkeypatch.setenv("GENERATION_API_URL", "https://api.openai.com/v1")
+    monkeypatch.setenv("GENERATION_API_KEY", "test-key")
+    monkeypatch.setenv("GENERATION_MODEL", "gpt-4.1-mini")
+    calls = []
+
+    def respond(request):
+        calls.append(json.loads(request.content))
+        if len(calls) == 1:
+            return httpx.Response(200, json={
+                "choices": [{"message": {"content": "PostgreSQL uses RLS."}}],
+                "usage": {"prompt_tokens": 100, "completion_tokens": 10},
+            })
+        return httpx.Response(200, json={
+            "choices": [{"message": {"content": "PostgreSQL uses RLS [1]."}}],
+            "usage": {"prompt_tokens": 140, "completion_tokens": 12},
+        })
+
+    result = asyncio.run(generate_answer(
+        "How does PostgreSQL isolate tenants?", EVIDENCE,
+        transport=httpx.MockTransport(respond),
+    ))
+    assert len(calls) == 2
+    assert result["citation_numbers"] == [1]
+    assert result["usage"] == {"input_tokens": 240, "output_tokens": 22}
+
+
+def test_invalid_repair_still_fails_without_fake_citations(monkeypatch):
+    monkeypatch.setenv("GENERATION_API_URL", "https://api.openai.com/v1")
+    monkeypatch.setenv("GENERATION_API_KEY", "test-key")
+    monkeypatch.setenv("GENERATION_MODEL", "gpt-4.1-mini")
+    calls = []
+
+    def respond(request):
+        calls.append(1)
+        return httpx.Response(200, json={
+            "choices": [{"message": {"content": "No source citation."}}],
+        })
+
+    with pytest.raises(GroundingError):
+        asyncio.run(generate_answer("Question?", EVIDENCE, transport=httpx.MockTransport(respond)))
+    assert len(calls) == 2
