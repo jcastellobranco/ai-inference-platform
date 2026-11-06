@@ -17,6 +17,10 @@ SECRET = os.environ.get("JWT_SECRET")
 class JobCreate(BaseModel):
     prompt: str = Field(min_length=1, max_length=8000)
 
+class RagJobCreate(BaseModel):
+    question: str = Field(min_length=1, max_length=2000)
+    reference_answer: str | None = Field(default=None, min_length=1, max_length=16000)
+
 def principal(credentials: HTTPAuthorizationCredentials = Depends(bearer)):
     if not SECRET or len(SECRET) < 32:
         raise HTTPException(503, "JWT secret not configured securely")
@@ -54,3 +58,24 @@ def get_job(job_id: UUID, identity=Depends(principal)):
         if row is None:
             raise HTTPException(404, "Job not found")
         return dict(row)
+
+@app.post("/v1/rag/jobs", status_code=201)
+def create_rag_job(body: RagJobCreate, identity=Depends(principal)):
+    """Enqueue RAG retrieval for the authenticated tenant; never accept tenant from request."""
+    configured_tenant = os.getenv("RAG_SERVICE_TENANT_ID", "")
+    if not configured_tenant or configured_tenant != identity["tenant"]:
+        raise HTTPException(403, "RAG is not configured for this tenant")
+    if not os.getenv("RAG_SERVICE_URL") or not os.getenv("RAG_SERVICE_API_KEY"):
+        raise HTTPException(503, "RAG service not configured")
+    if body.reference_answer is not None and (
+        not os.getenv("EVAL_SERVICE_URL") or not os.getenv("EVAL_SERVICE_API_KEY")
+    ):
+        raise HTTPException(503, "Evaluation service not configured")
+    with tenant_session(identity["tenant"]) as db:
+        job_id = db.execute(text("""
+            INSERT INTO jobs(tenant_id, prompt, status, created_by, job_type, reference_answer)
+            VALUES (:tenant, :question, 'queued', :actor, 'rag', :reference)
+            RETURNING id
+        """), {"tenant": identity["tenant"], "question": body.question,
+               "actor": identity["subject"], "reference": body.reference_answer}).scalar_one()
+        return {"id": job_id, "status": "queued", "job_type": "rag"}
