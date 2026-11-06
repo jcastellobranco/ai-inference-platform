@@ -16,6 +16,7 @@ export interface RagResult {
   citations: Array<{ source: string; chunk_id: string }>;
   evaluation?: { passed: boolean; metrics: Record<string, number>; failures?: string[] } | null;
   model?: string | null;
+  usage?: { input_tokens?: number | null; output_tokens?: number | null } | null;
 }
 export function parseRagResult(result: string | null): RagResult | null {
   if (!result) return null;
