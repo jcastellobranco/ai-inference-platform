@@ -70,5 +70,24 @@ services:
         condition: service_started
       evaluation:
         condition: service_started
+  integration-smoke:
+    profiles: ["smoke"]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["python", "-m", "app.integration_smoke"]
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+      RAG_SERVICE_TENANT_ID: "11111111-1111-4111-8111-111111111111"
+      RAG_SERVICE_URL: http://rag:8000
+      RAG_SERVICE_API_KEY: ${RAG_API_KEY:?Set RAG_API_KEY}
+      EVAL_SERVICE_URL: http://evaluation:8000
+      EVAL_SERVICE_API_KEY: ${EVAL_API_KEY:?Set EVAL_API_KEY}
+      INFERENCE_SERVICE_URL: http://backend:8000
+    depends_on:
+      - backend
+      - worker
+      - rag
+      - evaluation
 volumes:
   ragdata:
