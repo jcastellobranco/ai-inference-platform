@@ -8,21 +8,37 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL","pg_isready -U app -d platform"]
+      test: ["CMD-SHELL", "pg_isready -U app -d platform"]
       interval: 5s
       retries: 10
+  migrate:
+    image: postgres:17-alpine
+    environment:
+      PGPASSWORD: app
+    volumes:
+      - ./backend/migrations:/migrations:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >
+        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/001_init.sql &&
+        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/002_roles.sql &&
+        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/003_seed.sql
+    restart: "no"
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
     environment:
-      DATABASE_URL: postgresql+psycopg://app:app@db:5432/platform
+      DATABASE_URL: postgresql+psycopg://platform_runtime:local-development-only@db:5432/platform
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET to a random 32+ character value}
       JWT_ISSUER: portfolio-dev
       JWT_AUDIENCE: ai-platform
     depends_on:
-      db:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
   frontend:
     build:
       context: .
