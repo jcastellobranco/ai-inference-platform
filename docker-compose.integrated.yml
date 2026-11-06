@@ -22,10 +22,11 @@ services:
     depends_on:
       rag-db:
         condition: service_healthy
-    entrypoint: ["/bin/sh","-c"]
-    command: >
-      psql -h rag-db -U postgres -d rag -v ON_ERROR_STOP=1 -f /migrations/001_pgvector.sql &&
-      psql -h rag-db -U postgres -d rag -v ON_ERROR_STOP=1 -f /migrations/002_local_role.sql
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        psql -h rag-db -U postgres -d rag -v ON_ERROR_STOP=1 -f /migrations/001_pgvector.sql
+        psql -h rag-db -U postgres -d rag -v ON_ERROR_STOP=1 -f /migrations/002_local_role.sql
   rag:
     build:
       context: ../rag-document-intelligence
