@@ -79,3 +79,7 @@ def create_rag_job(body: RagJobCreate, identity=Depends(principal)):
         """), {"tenant": identity["tenant"], "question": body.question,
                "actor": identity["subject"], "reference": body.reference_answer}).scalar_one()
         return {"id": job_id, "status": "queued", "job_type": "rag"}
+
+# Import after principal is defined: the gateway reuses the same JWT authority.
+from .document_gateway import router as knowledge_router
+app.include_router(knowledge_router)
