@@ -1,8 +1,4 @@
-"""RAG job execution with retrieval citations and optional evaluation.
-
-No generative LLM is used here. The answer is intentionally extractive and
-explicitly labeled to avoid misrepresenting retrieval as a model-generated answer.
-"""
+"""Tenant-bound RAG execution with explicit answer states and retrieval diagnostics."""
 import json
 import os
 from time import perf_counter
@@ -14,13 +10,16 @@ async def execute_rag(job: dict) -> str:
     evidence = await retrieve(job["prompt"], str(job["tenant_id"]))
     model = None
     usage = None
+    retrieval = {"chunks_found": len(evidence),
+                 "sources": list(dict.fromkeys(hit["source"] for hit in evidence)),
+                 "chunk_ids": [hit["chunk_id"] for hit in evidence]}
     if not evidence:
         answer = "Insufficient retrieved evidence to answer."
         mode = "insufficient_evidence"
     elif os.getenv("RAG_GENERATION_ENABLED", "false").lower() == "true":
         generated = await generate_answer(job["prompt"], evidence)
         answer = generated["answer"]
-        mode = "grounded_generation"
+        mode = "grounded_generation" if generated["citation_numbers"] else "insufficient_evidence"
         model = generated["model"]
         usage = generated.get("usage")
         evidence = [evidence[index - 1] for index in generated["citation_numbers"]]
@@ -29,6 +28,8 @@ async def execute_rag(job: dict) -> str:
         mode = "extractive_first_chunk"
     result = {
         "mode": mode,
+        "answer_status": ("insufficient_evidence" if mode == "insufficient_evidence" else "answered"),
+        "retrieval": retrieval,
         "answer": answer,
         "citations": [{"source": hit["source"], "chunk_id": hit["chunk_id"]} for hit in evidence],
         "evaluation": None,
