@@ -62,7 +62,8 @@ def test_rag_job_is_extractive_and_cited(monkeypatch):
         assert question == "Where are pods scheduled?"
         assert tenant_id == ALLOWED
         return [{"source":"manual.md","chunk_id":"c1","text":"Pods are scheduled on nodes."}]
-    async def fake_evaluate(answer, reference, job_id):
+    async def fake_evaluate(answer, reference, job_id, *, latency_ms):
+        assert latency_ms >= 0
         assert answer == "Pods are scheduled on nodes."
         return {"passed":True,"metrics":{"exact_match":1}, "failures":[]}
     monkeypatch.setattr(rag_jobs, "retrieve", fake_retrieve)
