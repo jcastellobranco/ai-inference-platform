@@ -20,15 +20,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    entrypoint: ["/bin/sh", "-c"]
+    entrypoint: ["/bin/sh", "-ec"]
     command:
-      - >
-        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/001_init.sql &&
-        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/002_roles.sql &&
-        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/003_seed.sql &&
-        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/004_durable_jobs.sql &&
-        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/005_worker.sql &&
-        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/006_retry_state.sql &&
+      - |
+        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/001_init.sql
+        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/002_roles.sql
+        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/003_seed.sql
+        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/004_durable_jobs.sql
+        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/005_worker.sql
+        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/006_retry_state.sql
         psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/007_rag_jobs.sql
     restart: "no"
   backend:
