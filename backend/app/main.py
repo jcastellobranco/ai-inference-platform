@@ -34,7 +34,7 @@ def live():
 @app.get("/v1/jobs")
 def list_jobs(identity=Depends(principal)):
     with tenant_session(identity["tenant"]) as db:
-        rows = db.execute(text("SELECT id, prompt, status FROM jobs ORDER BY created_at DESC LIMIT 100")).mappings().all()
+        rows = db.execute(text("SELECT id, prompt, status, result, error, attempts, created_at, finished_at FROM jobs ORDER BY created_at DESC LIMIT 100")).mappings().all()
         return {"items": [dict(row) for row in rows]}
 
 @app.post("/v1/jobs", status_code=201)
@@ -42,3 +42,15 @@ def create_job(body: JobCreate, identity=Depends(principal)):
     with tenant_session(identity["tenant"]) as db:
         row = db.execute(text("INSERT INTO jobs(tenant_id, prompt, status, created_by) VALUES (:tenant, :prompt, 'queued', :actor) RETURNING id"), {"tenant": identity["tenant"], "prompt": body.prompt, "actor": identity["subject"]}).scalar_one()
         return {"id": row, "status": "queued"}
+
+@app.get("/v1/jobs/{job_id}")
+def get_job(job_id: UUID, identity=Depends(principal)):
+    """RLS returns 404 for missing and other-tenant jobs alike."""
+    with tenant_session(identity["tenant"]) as db:
+        row = db.execute(text("""
+            SELECT id, prompt, status, result, error, attempts, created_at, finished_at
+            FROM jobs WHERE id=:id
+        """), {"id": str(job_id)}).mappings().first()
+        if row is None:
+            raise HTTPException(404, "Job not found")
+        return dict(row)
