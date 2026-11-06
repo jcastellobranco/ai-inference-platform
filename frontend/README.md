@@ -1,38 +1,67 @@
-# AI Platform Console — React / TypeScript
+# ATLAS · AI Platform Console
 
-A small, componentized developer UI for the inference service. **It is not a production authentication application.** Developers paste short-lived JWTs, held in memory only.
+A responsive React / TypeScript workspace for the inference, knowledge, and evaluation services.
 
-## Architecture
+## Screens
+
+- **Overview**: recent activity, tenant-scoped documents and job counts, and suggested workflows.
+- **Knowledge base**: PDF uploads (10 MiB, 100 pages), text ingestion, persistent source catalogue, deletion.
+- **RAG playground**: hybrid lexical/vector search, source excerpts, citations, RAG execution and optional evaluation.
+- **Job runs**: inference submission, job status filters, answers and evaluation results.
+
+## Structure
 
 ```text
 src/
-  main.tsx                  App shell and composition
+  main.tsx                 app composition and session-scoped refresh
+  pages/
+    OverviewPage.tsx       overview metrics and activity
+    DocumentsPage.tsx      document ingestion and catalogue
+    PlaygroundPage.tsx     retrieval and RAG queries
+    JobsPage.tsx           durable queue activity
   components/
-    AccessTokenPanel.tsx    Development JWT input
-    JobForm.tsx             Inference and RAG job submission
-    JobsTable.tsx           Job status and citation display
+    AppShell.tsx           global navigation
+    AccessDialog.tsx       ephemeral JWT entry
+    EmptyState.tsx         reusable empty states
+    StatCard.tsx           KPI cards
+    StatusBadge.tsx        job state indicator
+    SectionHeader.tsx     reusable headings
   hooks/
-    useJobs.ts              Fetch lifecycle, cancellation and loading state
+    useJobs.ts             fetch state and cancellation
+    useKnowledge.ts        catalogue state and mutations
   lib/
-    api.ts                  Typed HTTP gateway and request errors
+    api.ts                 authenticated inference gateway
+    knowledgeApi.ts        authenticated knowledge gateway
   types/
-    jobs.ts                 Shared job models and RAG result parsing
-  style.css                 Responsive theme, focus and status styles
+    jobs.ts                job / result contracts
+    knowledge.ts           document / retrieval contracts
+  style.css                responsive design system
 ```
 
-UI components do not perform HTTP calls directly. The typed API layer handles endpoints and authorization headers, while `useJobs` owns fetching, cancellation and client state. The forms own temporary local input and have loading/disabled behavior. Changing the token clears jobs and cancels outstanding requests to avoid showing data from another tenant.
+The browser only calls the inference backend. FastAPI's `/v1/knowledge/*` BFF validates JWT tenant identity and uses the server-side RAG service key; the client never knows the private key. Tenant-scoped PostgreSQL RLS remains the authorization boundary.
 
-## Commands
+## Run integrated on Mac
+
+Keep all three repositories checked out side-by-side. In `ai-inference-platform`:
 
 ```bash
+docker compose -f docker-compose.fullstack.yml -f docker-compose.integrated.yml up --build -d
+docker compose -f docker-compose.fullstack.yml -f docker-compose.integrated.yml --profile smoke run --rm integration-smoke
+```
+
+Open http://localhost:8080. Use **Manage access** to paste the short-lived development JWT. Upload text or PDF in **Knowledge base**, retrieve sources in **RAG playground**, optionally run the durable RAG job, then inspect **Job runs**.
+
+Run frontend checks separately:
+
+```bash
+cd frontend
 npm install
 npm run test
 npm run build
-npm run dev
 ```
 
-Set `VITE_API_URL` to the inference backend gateway if it differs from `/api`. The existing Nginx Docker image proxies `/api`.
+The Vite development server requires a configured proxy or a browser-accessible API URL; the integrated Nginx setup already proxies `/api` to the backend.
 
-## Limitations and next work
+## Limitations
 
-The frontend currently displays the existing job API responses and submits RAG jobs, but it does not provide document management or an OAuth/OIDC login. Token claims are verified by the backend, not by the frontend; server-side PostgreSQL RLS remains the isolation authority. Job status is refreshed manually to avoid unnecessary polling. For a larger app, consider React Router, a query cache and component-level testing, but avoid unnecessary complexity until justified by actual workflows.
+This is a development interface, not an OAuth/OIDC login. The JWT is kept in page memory only. Retrieval mode returns evidence, not a synthesized answer; the RAG job defaults to extractive first-chunk mode unless generation is explicitly enabled. Evaluation metrics are lexical comparisons, not proof of factuality. Lists show the latest 100 jobs/documents. Active jobs are refreshed on a four-second interval until terminal state.
