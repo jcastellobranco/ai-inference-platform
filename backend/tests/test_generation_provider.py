@@ -18,6 +18,7 @@ def test_prompt_marks_retrieved_content_as_untrusted():
 
 def test_citations_must_be_present_and_valid():
     assert validate_citations("RLS isolates tenants [1].", 1) == [1]
+    assert validate_citations("INSUFFICIENT_EVIDENCE", 1) == []
     with pytest.raises(GroundingError):
         validate_citations("No citations.", 1)
     with pytest.raises(GroundingError):
@@ -57,3 +58,15 @@ def test_remote_generation_contract_and_token_usage(monkeypatch):
     assert result["answer"] == "PostgreSQL uses RLS [1]."
     assert result["citation_numbers"] == [1]
     assert result["usage"] == {"input_tokens": 120, "output_tokens": 25}
+
+
+def test_explicit_insufficient_evidence_does_not_invent_citation(monkeypatch):
+    monkeypatch.setenv("GENERATION_API_URL", "https://api.openai.com/v1")
+    monkeypatch.setenv("GENERATION_API_KEY", "test-key")
+    monkeypatch.setenv("GENERATION_MODEL", "gpt-4.1-mini")
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json={
+        "choices": [{"message": {"content": "INSUFFICIENT_EVIDENCE"}}],
+    }))
+    result = asyncio.run(generate_answer("Unknown?", EVIDENCE, transport=transport))
+    assert result["citation_numbers"] == []
+    assert result["answer"] == "Insufficient retrieved evidence to answer."
