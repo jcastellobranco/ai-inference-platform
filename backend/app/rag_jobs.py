@@ -13,6 +13,7 @@ async def execute_rag(job: dict) -> str:
     started = perf_counter()
     evidence = await retrieve(job["prompt"], str(job["tenant_id"]))
     model = None
+    usage = None
     if not evidence:
         answer = "Insufficient retrieved evidence to answer."
         mode = "insufficient_evidence"
@@ -21,6 +22,7 @@ async def execute_rag(job: dict) -> str:
         answer = generated["answer"]
         mode = "grounded_generation"
         model = generated["model"]
+        usage = generated.get("usage")
         evidence = [evidence[index - 1] for index in generated["citation_numbers"]]
     else:
         answer = evidence[0]["text"]
@@ -31,6 +33,7 @@ async def execute_rag(job: dict) -> str:
         "citations": [{"source": hit["source"], "chunk_id": hit["chunk_id"]} for hit in evidence],
         "evaluation": None,
         "model": model,
+        "usage": usage,
     }
     if job.get("reference_answer") is not None:
         result["evaluation"] = await evaluate_answer(
