@@ -21,7 +21,7 @@ interface Props {
 export function PlaygroundPage({ token, connected, jobs, refreshJobs, openAccess }: Props) {
   const [question, setQuestion] = useState('');
   const [reference, setReference] = useState('');
-  const [mode, setMode] = useState<'retrieve' | 'rag'>('retrieve');
+  const [mode, setMode] = useState<'retrieve' | 'rag'>('rag');
   const [hits, setHits] = useState<SearchHit[] | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -63,8 +63,8 @@ export function PlaygroundPage({ token, connected, jobs, refreshJobs, openAccess
         <div className="panel-topline"><span className="eyebrow">QUERY BUILDER</span><span className="step-chip">02 / EXPLORE</span></div>
         <h3>Ask better questions.</h3><p className="muted">Query your indexed content with lexical and semantic search combined using Reciprocal Rank Fusion.</p>
         <div className="mode-switch" role="group" aria-label="Query mode">
-          <button type="button" className={mode === 'retrieve' ? 'selected' : ''} onClick={() => setMode('retrieve')}>⌕ Retrieve sources</button>
-          <button type="button" className={mode === 'rag' ? 'selected' : ''} onClick={() => setMode('rag')}>✧ Run RAG job</button>
+          <button type="button" className={mode === 'retrieve' ? 'selected' : ''} onClick={() => setMode('retrieve')}>⌕ Inspect retrieval</button>
+          <button type="button" className={mode === 'rag' ? 'selected' : ''} onClick={() => setMode('rag')}>✧ Ask AI</button>
         </div>
         <form onSubmit={event => void submit(event)}>
           <label htmlFor="query-question">Your question</label>
@@ -77,7 +77,7 @@ export function PlaygroundPage({ token, connected, jobs, refreshJobs, openAccess
               onChange={event => setReference(event.target.value)} placeholder="Provide a reference to measure exact match and token F1." />
           </>}
           <button type="submit" className="button-primary wide-button" disabled={!connected || busy || !question.trim()}>
-            {busy ? 'Processing…' : mode === 'retrieve' ? 'Search knowledge base' : 'Queue RAG execution'} <span>↗</span>
+            {busy ? 'Processing…' : mode === 'retrieve' ? 'Search knowledge base' : 'Ask AI · queue job'} <span>↗</span>
           </button>
         </form>
         {!connected && <p className="inline-hint">To query your documents, <button onClick={openAccess}>connect your JWT →</button></p>}
@@ -108,6 +108,7 @@ export function PlaygroundPage({ token, connected, jobs, refreshJobs, openAccess
           <code className="job-reference">{jobId}</code>
           {answer ? <>
             <div className="answer-panel"><span className="eyebrow">ANSWER · {answer.mode.replaceAll('_', ' ').toUpperCase()}</span><p>{answer.answer}</p></div>
+            {answer.model && <p className="muted">Model: {answer.model}{answer.usage?.input_tokens != null ? ` · Input: ${answer.usage.input_tokens} tokens` : ''}{answer.usage?.output_tokens != null ? ` · Output: ${answer.usage.output_tokens} tokens` : ''}</p>}
             <h4>Referenced sources</h4>
             {answer.citations.map((citation, index) => <div className="citation-row" key={citation.chunk_id}>
               <span>[{index + 1}]</span><strong>{citation.source}</strong><small>{citation.chunk_id.slice(0, 8)}</small>
@@ -119,7 +120,7 @@ export function PlaygroundPage({ token, connected, jobs, refreshJobs, openAccess
           </> : activeJob?.status === 'failed' ? <p className="error-message">{activeJob.error || 'Job failed'}</p>
             : <p className="muted">Worker is processing your question. Results update automatically while the job is active.</p>}
         </div>}
-        <div className="results-note"><span>ⓘ</span><p>Default answers use the first retrieved chunk. This is extractive retrieval, not LLM-generated reasoning. Generation requires a separate provider configuration.</p></div>
+        <div className="results-note"><span>ⓘ</span><p>Ask AI runs a durable RAG job. Until an external API key is configured, answers are extractive (first retrieved chunk), not LLM-generated. Inspect retrieval shows the ranked evidence.</p></div>
       </section>
     </div>
   </>;
