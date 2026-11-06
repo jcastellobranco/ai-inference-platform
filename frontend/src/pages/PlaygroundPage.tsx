@@ -21,6 +21,7 @@ interface Props {
 export function PlaygroundPage({ token, connected, jobs, refreshJobs, openAccess }: Props) {
   const [question, setQuestion] = useState('');
   const [reference, setReference] = useState('');
+  const [conversationContext, setConversationContext] = useState('');
   const [mode, setMode] = useState<'retrieve' | 'rag'>('rag');
   const [hits, setHits] = useState<SearchHit[] | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
@@ -30,7 +31,7 @@ export function PlaygroundPage({ token, connected, jobs, refreshJobs, openAccess
   currentToken.current = token;
   const activeJob = jobs.find(job => job.id === jobId);
   const answer = activeJob ? parseRagResult(activeJob.result) : null;
-  useEffect(() => { setHits(null); setJobId(null); setError(null); setBusy(false); }, [token]);
+  useEffect(() => { setHits(null); setJobId(null); setError(null); setBusy(false); setConversationContext(''); }, [token]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -42,9 +43,13 @@ export function PlaygroundPage({ token, connected, jobs, refreshJobs, openAccess
         const result = await knowledgeApi.search(token, question.trim());
         if (currentToken.current === submittedToken) setHits(result.citations);
       } else {
-        const result = await jobsApi.createRag(token, question.trim(), reference.trim() || undefined);
+        const standaloneQuestion = conversationContext.trim()
+          ? `Previous question: ${conversationContext.trim()}\nCurrent question: ${question.trim()}\nAnswer only the current question using document evidence.`
+          : question.trim();
+        const result = await jobsApi.createRag(token, standaloneQuestion.slice(0, 2000), reference.trim() || undefined);
         if (currentToken.current === submittedToken) {
           setJobId(result.id);
+          setConversationContext(question.trim());
           await refreshJobs();
         }
       }
@@ -67,6 +72,7 @@ export function PlaygroundPage({ token, connected, jobs, refreshJobs, openAccess
           <button type="button" className={mode === 'rag' ? 'selected' : ''} onClick={() => setMode('rag')}>✧ Ask AI</button>
         </div>
         <form onSubmit={event => void submit(event)}>
+          {conversationContext && mode === 'rag' && <p className="inline-hint">Previous question: {conversationContext.slice(0, 160)} <button type="button" onClick={() => setConversationContext('')}>Clear context</button></p>}
           <label htmlFor="query-question">Your question</label>
           <textarea id="query-question" rows={6} maxLength={2000} value={question}
             onChange={event => setQuestion(event.target.value)}
