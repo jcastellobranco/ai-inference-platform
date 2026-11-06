@@ -5,10 +5,12 @@ explicitly labeled to avoid misrepresenting retrieval as a model-generated answe
 """
 import json
 import os
+from time import perf_counter
 from .generation import generate_answer
 from .rag_client import retrieve, evaluate_answer
 
 async def execute_rag(job: dict) -> str:
+    started = perf_counter()
     evidence = await retrieve(job["prompt"], str(job["tenant_id"]))
     model = None
     if not evidence:
@@ -32,6 +34,7 @@ async def execute_rag(job: dict) -> str:
     }
     if job.get("reference_answer") is not None:
         result["evaluation"] = await evaluate_answer(
-            answer, job["reference_answer"], str(job["id"])
+            answer, job["reference_answer"], str(job["id"]),
+            latency_ms=(perf_counter() - started) * 1000
         )
     return json.dumps(result, ensure_ascii=False)
