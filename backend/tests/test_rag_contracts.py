@@ -72,6 +72,8 @@ def test_rag_job_is_extractive_and_cited(monkeypatch):
          "reference_answer":"Pods are scheduled on nodes."}
     result=json.loads(asyncio.run(rag_jobs.execute_rag(job)))
     assert result["mode"] == "extractive_first_chunk"
+    assert result["answer_status"] == "answered"
+    assert result["retrieval"]["chunks_found"] == 1
     assert result["citations"] == [{"source":"manual.md","chunk_id":"c1"}]
     assert result["evaluation"]["passed"] is True
 
@@ -83,5 +85,26 @@ def test_empty_retrieval_does_not_hallucinate(monkeypatch):
         "id":str(uuid4()),"tenant_id":ALLOWED,"prompt":"unknown","reference_answer":None
     })))
     assert result["mode"] == "insufficient_evidence"
+    assert result["answer_status"] == "insufficient_evidence"
+    assert result["retrieval"]["chunks_found"] == 0
     assert result["citations"] == []
     assert result["evaluation"] is None
+
+
+def test_generated_refusal_has_distinct_status(monkeypatch):
+    monkeypatch.setenv("RAG_GENERATION_ENABLED", "true")
+    async def found(question, tenant_id):
+        return [{"source": "rules.pdf", "chunk_id": "c1", "text": "Only official schedule is covered."}]
+    async def refusal(question, evidence):
+        return {"answer": "Insufficient retrieved evidence to answer.",
+                "citation_numbers": [], "model": "mock", "usage": {"input_tokens": 10, "output_tokens": 2}}
+    monkeypatch.setattr(rag_jobs, "retrieve", found)
+    monkeypatch.setattr(rag_jobs, "generate_answer", refusal)
+    result = json.loads(asyncio.run(rag_jobs.execute_rag({
+        "id": str(uuid4()), "tenant_id": ALLOWED, "prompt": "Can I wear my own clothes?",
+        "reference_answer": None,
+    })))
+    assert result["mode"] == "insufficient_evidence"
+    assert result["answer_status"] == "insufficient_evidence"
+    assert result["retrieval"]["chunks_found"] == 1
+    assert result["citations"] == []
