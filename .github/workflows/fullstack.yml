@@ -37,6 +37,8 @@ jobs:
           psql -h localhost -U app -d platform -v ON_ERROR_STOP=1 -f backend/migrations/001_init.sql
           psql -h localhost -U app -d platform -v ON_ERROR_STOP=1 -f backend/migrations/002_roles.sql
           psql -h localhost -U app -d platform -v ON_ERROR_STOP=1 -f backend/migrations/003_seed.sql
+          psql -h localhost -U app -d platform -v ON_ERROR_STOP=1 -f backend/migrations/004_durable_jobs.sql
+          psql -h localhost -U app -d platform -v ON_ERROR_STOP=1 -f backend/migrations/005_worker.sql
       - name: Run tenant isolation and JWT tests
         env:
           PYTHONPATH: backend
