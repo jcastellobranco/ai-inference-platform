@@ -12,6 +12,8 @@ export interface Job {
 }
 export interface RagResult {
   mode: string;
+  answer_status?: "answered" | "insufficient_evidence" | "generation_failed";
+  retrieval?: { chunks_found: number; sources: string[]; chunk_ids: string[] };
   answer: string;
   citations: Array<{ source: string; chunk_id: string }>;
   evaluation?: { passed: boolean; metrics: Record<string, number>; failures?: string[] } | null;
