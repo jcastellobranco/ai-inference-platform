@@ -36,7 +36,7 @@ def claim_job(sessions):
                 leased_until=now() + (:lease * interval '1 second'),
                 worker_id=:worker, lease_token=:token
             FROM candidate WHERE j.id=candidate.id
-            RETURNING j.id, j.tenant_id, j.prompt, j.attempts, j.lease_token
+            RETURNING j.id, j.tenant_id, j.prompt, j.attempts, j.lease_token, j.job_type, j.reference_answer
         """), {"max_attempts": MAX_ATTEMPTS, "lease": LEASE_SECONDS,
                "worker": WORKER_ID, "token": lease_token}).mappings().first()
         return dict(row) if row else None
@@ -87,7 +87,12 @@ async def run_forever():
             await asyncio.sleep(POLL_SECONDS)
             continue
         try:
-            output = await asyncio.wait_for(infer(job["prompt"]), timeout=LEASE_SECONDS - 5)
+            if job["job_type"] == "rag":
+                from .rag_jobs import execute_rag
+                operation = execute_rag(job)
+            else:
+                operation = infer(job["prompt"])
+            output = await asyncio.wait_for(operation, timeout=LEASE_SECONDS - 5)
             await asyncio.to_thread(finish_job, sessions, job, result=output)
         except Exception as exc:
             await asyncio.to_thread(finish_job, sessions, job, error=type(exc).__name__)
