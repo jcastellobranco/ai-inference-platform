@@ -1,0 +1,56 @@
+name: Full-stack validation
+on:
+  push:
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'docker-compose.fullstack.yml'
+      - '.github/workflows/fullstack.yml'
+  pull_request:
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: platform
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app -d platform"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r backend/requirements-dev.txt
+      - name: Prepare schema and RLS runtime role
+        env:
+          PGPASSWORD: app
+        run: |
+          psql -h localhost -U app -d platform -v ON_ERROR_STOP=1 -f backend/migrations/001_init.sql
+          psql -h localhost -U app -d platform -v ON_ERROR_STOP=1 -f backend/migrations/002_roles.sql
+          psql -h localhost -U app -d platform -v ON_ERROR_STOP=1 -f backend/migrations/003_seed.sql
+      - name: Run tenant isolation and JWT tests
+        env:
+          PYTHONPATH: backend
+          TEST_DATABASE_URL: postgresql+psycopg://platform_runtime:local-development-only@localhost:5432/platform
+        run: pytest backend/tests -q
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+      - run: npm run build
