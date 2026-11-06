@@ -41,10 +41,10 @@ def claim_job(sessions):
                "worker": WORKER_ID, "token": lease_token}).mappings().first()
         return dict(row) if row else None
 
-def finish_job(sessions, job, *, result=None, error=None):
+def finish_job(sessions, job, *, result=None, error=None, permanent=False):
     """Fencing token prevents a timed-out former worker from overwriting a new lease."""
     with sessions.begin() as db:
-        status = "completed" if error is None else ("retrying" if job["attempts"] < MAX_ATTEMPTS else "failed")
+        status = "completed" if error is None else ("failed" if permanent or job["attempts"] >= MAX_ATTEMPTS else "retrying")
         # Retry time is persisted: retries must not become stranded with a NULL lease.
         retry_delay = min(60, 2 ** min(job["attempts"] - 1, 6))
         updated = db.execute(text("""
@@ -95,7 +95,10 @@ async def run_forever():
             output = await asyncio.wait_for(operation, timeout=LEASE_SECONDS - 5)
             await asyncio.to_thread(finish_job, sessions, job, result=output)
         except Exception as exc:
-            await asyncio.to_thread(finish_job, sessions, job, error=type(exc).__name__)
+            from .generation import GroundingError
+            await asyncio.to_thread(finish_job, sessions, job,
+                                    error=type(exc).__name__,
+                                    permanent=isinstance(exc, GroundingError))
 
 if __name__ == "__main__":
     asyncio.run(run_forever())
