@@ -1,0 +1,38 @@
+import { useState, type FormEvent } from 'react';
+interface Props { token: string; onChange: (token: string) => void; onClose: () => void; onConnected: () => void }
+export function AccessDialog({ token, onChange, onClose, onConnected }: Props) {
+  const [draft, setDraft] = useState(token);
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    onChange(draft.trim());
+    onClose();
+    onConnected();
+  }
+  return <div className="dialog-backdrop" onMouseDown={event => {
+    if (event.target === event.currentTarget) onClose();
+  }}>
+    <section className="access-dialog" role="dialog" aria-modal="true" aria-labelledby="access-title">
+      <div className="dialog-heading">
+        <div className="dialog-symbol">◇</div>
+        <button type="button" className="icon-button" aria-label="Close" onClick={onClose}>×</button>
+      </div>
+      <span className="eyebrow">DEVELOPMENT CONNECTION</span>
+      <h2 id="access-title">Connect your workspace</h2>
+      <p className="muted">Paste a short-lived developer JWT. Credentials stay in tab memory and are never saved to disk.</p>
+      <form onSubmit={submit}>
+        <label htmlFor="access-jwt">JWT access token</label>
+        <textarea id="access-jwt" className="jwt-input" spellCheck={false} autoComplete="off"
+          value={draft} onChange={event => setDraft(event.target.value)}
+          placeholder="eyJhbGciOiJIUzI1NiIs..." rows={3} />
+        <div className="dialog-actions">
+          <button className="button-quiet" type="button" onClick={onClose}>Cancel</button>
+          <button className="button-primary" type="submit" disabled={!draft.trim()}>
+            Connect workspace <span>↗</span>
+          </button>
+        </div>
+      </form>
+      {token && <button className="disconnect" type="button"
+        onClick={() => { onChange(''); onClose(); }}>Disconnect current session</button>}
+    </section>
+  </div>;
+}
