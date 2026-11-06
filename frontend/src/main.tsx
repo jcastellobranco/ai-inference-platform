@@ -1,32 +1,49 @@
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { AccessTokenPanel } from './components/AccessTokenPanel';
+import { JobForm } from './components/JobForm';
+import { JobsTable } from './components/JobsTable';
+import { useJobs } from './hooks/useJobs';
+import { jobsApi } from './lib/api';
+import type { JobType } from './types/jobs';
 import './style.css';
 
-type Job = { id: string; prompt: string; status: string; result?: string | null; error?: string | null; attempts?: number };
-const API = import.meta.env.VITE_API_URL || '/api';
 function App() {
   const [token, setToken] = useState('');
-  const [prompt, setPrompt] = useState('');
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [error, setError] = useState('');
-  const headers = { Authorization: 'Bearer ' + token };
-  async function refresh() {
-    const response = await fetch(API + '/v1/jobs', { headers });
-    if (!response.ok) throw new Error('Request failed: ' + response.status);
-    setJobs((await response.json()).items);
-  }
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const { jobs, isLoading, error, refresh } = useJobs(token);
+
+  async function submit(type: JobType, prompt: string, reference: string) {
+    setIsSubmitting(true);
+    setSubmissionError(null);
     try {
-      const response = await fetch(API + '/v1/jobs', { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
-      if (!response.ok) throw new Error('Submission failed: ' + response.status);
-      setPrompt(''); await refresh(); setError('');
-    } catch (e) { setError(String(e)); }
+      if (type === 'rag') await jobsApi.createRag(token, prompt, reference || undefined);
+      else await jobsApi.createInference(token, prompt);
+      await refresh();
+    } catch (failure: unknown) {
+      setSubmissionError(failure instanceof Error ? failure.message : 'Job submission failed');
+    } finally {
+      setIsSubmitting(false);
+    }
   }
-  return <main><header><h1>AI Platform Console</h1><p>Multi-tenant inference operations · developer preview</p></header>
-    <section><h2>Development token</h2><p>Paste a short-lived JWT for local testing. Token is held in component memory only.</p><input aria-label="JWT" type="password" value={token} onChange={e => setToken(e.target.value)} placeholder="JWT access token"/><button onClick={() => refresh().catch(e => setError(String(e)))}>Load jobs</button></section>
-    <section><h2>Submit inference job</h2><form onSubmit={submit}><textarea aria-label="Prompt" maxLength={8000} value={prompt} onChange={e => setPrompt(e.target.value)} placeholder="Enter prompt"/><button disabled={!token || !prompt.trim()}>Submit</button></form></section>
-    {error && <p role="alert">{error}</p>}<section><h2>Recent jobs</h2><table><thead><tr><th>Job ID</th><th>Prompt</th><th>Status</th><th>Attempts</th><th>Result</th></tr></thead><tbody>{jobs.map(j => <tr key={j.id}><td>{j.id}</td><td>{j.prompt}</td><td>{j.status}</td><td>{j.attempts ?? 0}</td><td>{j.result ?? j.error ?? '—'}</td></tr>)}</tbody></table></section>
+
+  return <main>
+    <header className="page-header">
+      <p className="eyebrow">Developer console</p>
+      <h1>AI Platform Console</h1>
+      <p>Tenant-isolated inference jobs, document retrieval and evaluation.</p>
+    </header>
+    <AccessTokenPanel token={token} onTokenChange={setToken} onLoad={() => void refresh()}
+      isLoading={isLoading} />
+    <JobForm disabled={!token.trim()} isSubmitting={isSubmitting} onSubmit={submit} />
+    {(error || submissionError) && <p className="alert" role="alert">{submissionError || error}</p>}
+    <JobsTable jobs={jobs} isLoading={isLoading} onRefresh={() => void refresh()}
+      disabled={!token.trim()} />
+    <footer>Developer preview · JWT is held in memory only · No production login flow</footer>
   </main>;
 }
-createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>);
+
+createRoot(document.getElementById('root')!).render(
+  <React.StrictMode><App /></React.StrictMode>,
+);
