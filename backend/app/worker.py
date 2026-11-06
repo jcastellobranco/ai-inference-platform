@@ -27,7 +27,7 @@ def claim_job(sessions):
         row = db.execute(text("""
             WITH candidate AS (
                 SELECT id FROM jobs
-                WHERE (status = 'queued' OR (status = 'running' AND leased_until < now()))
+                WHERE (status = 'queued' OR (status = 'running' AND leased_until < now()) OR (status = 'retrying' AND leased_until <= now()))
                   AND attempts < :max_attempts
                 ORDER BY created_at, id
                 FOR UPDATE SKIP LOCKED LIMIT 1
@@ -49,10 +49,10 @@ def finish_job(sessions, job, *, result=None, error=None):
                 leased_until=NULL, finished_at=now()
             WHERE id=:id AND tenant_id=:tenant AND worker_id=:worker
               AND lease_token=:token AND status='running' AND leased_until > now()
-        """), {"status": "completed" if error is None else "failed",
+        """), {"status": "completed" if error is None else ("retrying" if job["attempts"] < MAX_ATTEMPTS else "failed"),
                "result": result, "error": error, "id": job["id"],
                "tenant": job["tenant_id"], "worker": WORKER_ID,
-               "token": job["lease_token"]}).rowcount
+               "token": job["lease_token"], "attempts": job["attempts"]}).rowcount
         return updated == 1
 
 def expire_exhausted(sessions):
