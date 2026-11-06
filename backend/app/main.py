@@ -1,0 +1,44 @@
+"""FastAPI API demonstrating JWT tenant claims and PostgreSQL RLS."""
+import os
+from uuid import UUID
+import jwt
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import BaseModel, Field
+from sqlalchemy import text
+from .db import tenant_session
+
+app = FastAPI(title="Multi-Tenant AI Platform", version="0.1.0")
+bearer = HTTPBearer()
+ISSUER = os.environ.get("JWT_ISSUER", "portfolio-dev")
+AUDIENCE = os.environ.get("JWT_AUDIENCE", "ai-platform")
+SECRET = os.environ.get("JWT_SECRET")
+
+class JobCreate(BaseModel):
+    prompt: str = Field(min_length=1, max_length=8000)
+
+def principal(credentials: HTTPAuthorizationCredentials = Depends(bearer)):
+    if not SECRET or len(SECRET) < 32:
+        raise HTTPException(503, "JWT secret not configured securely")
+    try:
+        claims = jwt.decode(credentials.credentials, SECRET, algorithms=["HS256"], issuer=ISSUER, audience=AUDIENCE, options={"require": ["sub", "tenant_id", "exp", "iss", "aud"]})
+        tenant = str(UUID(claims["tenant_id"]))
+        return {"subject": claims["sub"], "tenant": tenant}
+    except (jwt.PyJWTError, ValueError, KeyError):
+        raise HTTPException(401, "Invalid token")
+
+@app.get("/health/live")
+def live():
+    return {"status": "ok"}
+
+@app.get("/v1/jobs")
+def list_jobs(identity=Depends(principal)):
+    with tenant_session(identity["tenant"]) as db:
+        rows = db.execute(text("SELECT id, prompt, status FROM jobs ORDER BY created_at DESC LIMIT 100")).mappings().all()
+        return {"items": [dict(row) for row in rows]}
+
+@app.post("/v1/jobs", status_code=201)
+def create_job(body: JobCreate, identity=Depends(principal)):
+    with tenant_session(identity["tenant"]) as db:
+        row = db.execute(text("INSERT INTO jobs(tenant_id, prompt, status, created_by) VALUES (:tenant, :prompt, 'queued', :actor) RETURNING id"), {"tenant": identity["tenant"], "prompt": body.prompt, "actor": identity["subject"]}).scalar_one()
+        return {"id": row, "status": "queued"}
