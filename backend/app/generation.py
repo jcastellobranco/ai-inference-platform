@@ -67,10 +67,42 @@ async def generate_answer(question: str, evidence: list[dict], *, transport=None
         answer = data["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as exc:
         raise ValueError("Unexpected generation provider response") from exc
-    citation_numbers = validate_citations(answer, len(evidence))
+    try:
+        citation_numbers = validate_citations(answer, len(evidence))
+    except GroundingError:
+        # One bounded format-repair attempt. Never attach a guessed citation ourselves.
+        repair_messages = messages + [
+            {"role": "assistant", "content": answer if isinstance(answer, str) and answer.strip() else "(empty response)"},
+            {"role": "user", "content":
+                "Your previous response could not be verified. Rewrite the answer using ONLY "
+                "the numbered source excerpts, with at least one valid citation such as [1] "
+                "for each supported claim. If they do not support an answer, reply with exactly "
+                "INSUFFICIENT_EVIDENCE. Do not invent references."},
+        ]
+        async with httpx.AsyncClient(timeout=httpx.Timeout(40.0), transport=transport, trust_env=False) as client:
+            repaired = await client.post(
+                f"{url}/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}"},
+                json={"model": model, "messages": repair_messages,
+                      "max_completion_tokens": max_output},
+            )
+            repaired.raise_for_status()
+            repair_data = repaired.json()
+        try:
+            answer = repair_data["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise GroundingError("Repair response had invalid format") from exc
+        citation_numbers = validate_citations(answer, len(evidence))
+        first_usage = data.get("usage") or {}
+        second_usage = repair_data.get("usage") or {}
+        usage = {
+            "prompt_tokens": (first_usage.get("prompt_tokens") or 0) + (second_usage.get("prompt_tokens") or 0),
+            "completion_tokens": (first_usage.get("completion_tokens") or 0) + (second_usage.get("completion_tokens") or 0),
+        }
+    else:
+        usage = data.get("usage") or {}
     if not citation_numbers:
         answer = "Insufficient retrieved evidence to answer."
-    usage = data.get("usage") or {}
     return {"answer": answer, "citation_numbers": citation_numbers, "model": model,
             "usage": {"input_tokens": usage.get("prompt_tokens"),
                       "output_tokens": usage.get("completion_tokens")}}
