@@ -19,6 +19,8 @@ export interface RagResult {
   evaluation?: { passed: boolean; metrics: Record<string, number>; failures?: string[] } | null;
   model?: string | null;
   usage?: { input_tokens?: number | null; output_tokens?: number | null } | null;
+  performance?: { retrieval_ms: number; generation_ms: number; evaluation_ms: number;
+    processing_ms: number; provider_calls: number; repair_attempted: boolean };
 }
 export function parseRagResult(result: string | null): RagResult | null {
   if (!result) return null;
