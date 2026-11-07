@@ -74,6 +74,8 @@ def test_rag_job_is_extractive_and_cited(monkeypatch):
     assert result["mode"] == "extractive_first_chunk"
     assert result["answer_status"] == "answered"
     assert result["retrieval"]["chunks_found"] == 1
+    assert result["performance"]["provider_calls"] == 0
+    assert result["performance"]["retrieval_ms"] >= 0
     assert result["citations"] == [{"source":"manual.md","chunk_id":"c1"}]
     assert result["evaluation"]["passed"] is True
 
@@ -107,4 +109,5 @@ def test_generated_refusal_has_distinct_status(monkeypatch):
     assert result["mode"] == "insufficient_evidence"
     assert result["answer_status"] == "insufficient_evidence"
     assert result["retrieval"]["chunks_found"] == 1
+    assert result["performance"]["provider_calls"] == 1
     assert result["citations"] == []
