@@ -116,6 +116,17 @@ export function PlaygroundPage({ token, connected, jobs, refreshJobs, openAccess
             <div className="answer-panel"><span className="eyebrow">ANSWER · {answer.mode.replaceAll('_', ' ').toUpperCase()}</span><p>{answer.answer}</p></div>
             {answer.model && <p className="muted">Model: {answer.model}{answer.usage?.input_tokens != null ? ` · Input: ${answer.usage.input_tokens} tokens` : ''}{answer.usage?.output_tokens != null ? ` · Output: ${answer.usage.output_tokens} tokens` : ''}</p>}
             {answer.retrieval && <p className="muted">Retrieval: {answer.retrieval.chunks_found} chunks · {answer.retrieval.sources.length} document(s) · Status: {answer.answer_status || "answered"}</p>}
+            {answer.performance && <section className="eval-box" aria-label="Performance trace">
+              <strong>Performance trace · {(answer.performance.processing_ms / 1000).toFixed(2)}s processing</strong>
+              <div className="metric-pills">
+                <span>Retrieval: <b>{answer.performance.retrieval_ms.toFixed(0)} ms</b></span>
+                <span>LLM: <b>{answer.performance.generation_ms.toFixed(0)} ms</b></span>
+                <span>Evaluation: <b>{answer.performance.evaluation_ms.toFixed(0)} ms</b></span>
+                <span>Provider calls: <b>{answer.performance.provider_calls}</b></span>
+                <span>Citation repair: <b>{answer.performance.repair_attempted ? 'yes' : 'no'}</b></span>
+              </div>
+              <p className="muted">Processing time excludes queue waiting and frontend polling. Older jobs may not include a trace.</p>
+            </section>}
             <h4>Referenced sources</h4>
             {answer.citations.map((citation, index) => <div className="citation-row" key={citation.chunk_id}>
               <span>[{index + 1}]</span><strong>{citation.source}</strong><small>{citation.chunk_id.slice(0, 8)}</small>
