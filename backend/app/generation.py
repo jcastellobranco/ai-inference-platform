@@ -5,6 +5,7 @@ or provider credential is embedded in the repository.
 """
 import os
 import re
+from time import perf_counter
 from urllib.parse import urlparse
 import httpx
 
@@ -54,6 +55,9 @@ async def generate_answer(question: str, evidence: list[dict], *, transport=None
     max_output = int(os.getenv("GENERATION_MAX_OUTPUT_TOKENS", "500"))
     if not 64 <= max_output <= 2048:
         raise RuntimeError("GENERATION_MAX_OUTPUT_TOKENS must be between 64 and 2048")
+    started = perf_counter()
+    provider_calls = 1
+    repair_attempted = False
     messages = grounded_messages(question, evidence[:5])
     async with httpx.AsyncClient(timeout=httpx.Timeout(40.0), transport=transport, trust_env=False) as client:
         response = await client.post(
@@ -70,6 +74,8 @@ async def generate_answer(question: str, evidence: list[dict], *, transport=None
     try:
         citation_numbers = validate_citations(answer, len(evidence))
     except GroundingError:
+        provider_calls += 1
+        repair_attempted = True
         # One bounded format-repair attempt. Never attach a guessed citation ourselves.
         repair_messages = messages + [
             {"role": "assistant", "content": answer if isinstance(answer, str) and answer.strip() else "(empty response)"},
@@ -104,5 +110,7 @@ async def generate_answer(question: str, evidence: list[dict], *, transport=None
     if not citation_numbers:
         answer = "Insufficient retrieved evidence to answer."
     return {"answer": answer, "citation_numbers": citation_numbers, "model": model,
+            "telemetry": {"llm_ms": round((perf_counter() - started) * 1000, 1),
+                          "provider_calls": provider_calls, "repair_attempted": repair_attempted},
             "usage": {"input_tokens": usage.get("prompt_tokens"),
                       "output_tokens": usage.get("completion_tokens")}}
