@@ -17,6 +17,10 @@ SECRET = os.environ.get("JWT_SECRET")
 class JobCreate(BaseModel):
     prompt: str = Field(min_length=1, max_length=8000)
 
+class AgentJobCreate(BaseModel):
+    question: str = Field(min_length=1, max_length=2000)
+
+
 class RagJobCreate(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
     reference_answer: str | None = Field(default=None, min_length=1, max_length=16000)
@@ -83,3 +87,20 @@ def create_rag_job(body: RagJobCreate, identity=Depends(principal)):
 # Import after principal is defined: the gateway reuses the same JWT authority.
 from .document_gateway import router as knowledge_router
 app.include_router(knowledge_router)
+
+
+@app.post("/v1/agent/jobs", status_code=201)
+def create_agent_job(body: AgentJobCreate, identity=Depends(principal)):
+    """Tenant-bound durable agent job; only ATLAS worker calls the private agent."""
+    if identity["tenant"] != os.getenv("AGENT_SERVICE_TENANT_ID", ""):
+        raise HTTPException(403, "Agent service is not available for this tenant")
+    if not os.getenv("AGENT_SERVICE_URL") or len(os.getenv("ATLAS_AGENT_SERVICE_KEY", "")) < 32:
+        raise HTTPException(503, "Agent service not configured")
+    with tenant_session(identity["tenant"]) as db:
+        job_id = db.execute(text("""
+            INSERT INTO jobs(tenant_id, prompt, status, created_by, job_type)
+            VALUES (:tenant, :question, 'queued', :actor, 'agent')
+            RETURNING id
+        """), {"tenant": identity["tenant"], "question": body.question,
+               "actor": identity["subject"]}).scalar_one()
+        return {"id": job_id, "status": "queued", "job_type": "agent"}
