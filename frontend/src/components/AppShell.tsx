@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
 
-export type View = 'overview' | 'documents' | 'playground' | 'jobs';
+export type View = 'overview' | 'documents' | 'playground' | 'agents' | 'jobs';
 const routes: Array<{ id: View; label: string; symbol: string; hint: string }> = [
   { id: 'overview', label: 'Overview', symbol: '◫', hint: '01' },
   { id: 'documents', label: 'Knowledge base', symbol: '▤', hint: '02' },
   { id: 'playground', label: 'RAG playground', symbol: '✧', hint: '03' },
-  { id: 'jobs', label: 'Job runs', symbol: '◷', hint: '04' },
+  { id: 'agents', label: 'Multi-Agent', symbol: '✳', hint: '04' },
+  { id: 'jobs', label: 'Job runs', symbol: '◷', hint: '05' },
 ];
 interface Props {
   view: View; onNavigate: (view: View) => void; connected: boolean;
@@ -34,7 +35,7 @@ export function AppShell({ view, onNavigate, connected, children, onOpenAccess }
         <button className="sidebar-access" type="button" onClick={onOpenAccess}>
           <span>◇</span> {connected ? 'Manage access' : 'Connect your JWT'} <span>↗</span>
         </button>
-        <p className="sidebar-caption">RAG · INFERENCE · EVALUATION</p>
+        <p className="sidebar-caption">RAG · AGENTS · MCP · EVALUATION</p>
       </div>
     </aside>
     <div className="main-column">
