@@ -5,6 +5,7 @@ import { AppShell, type View } from './components/AppShell';
 import { useJobs } from './hooks/useJobs';
 import { useKnowledge } from './hooks/useKnowledge';
 import { DocumentsPage } from './pages/DocumentsPage';
+import { AgentsPage } from './pages/AgentsPage';
 import { JobsPage } from './pages/JobsPage';
 import { OverviewPage } from './pages/OverviewPage';
 import { PlaygroundPage } from './pages/PlaygroundPage';
@@ -44,6 +45,8 @@ function App() {
         documents={knowledge.documents} loading={knowledge.loading} busy={knowledge.busy} error={knowledge.error}
         mutate={knowledge.mutate} refresh={knowledge.refresh} openAccess={openAccess}/>}
       {view === 'playground' && <PlaygroundPage token={token} connected={connected} jobs={jobs}
+        refreshJobs={refreshJobs} openAccess={openAccess}/>}
+      {view === 'agents' && <AgentsPage token={token} connected={connected} jobs={jobs}
         refreshJobs={refreshJobs} openAccess={openAccess}/>}
       {view === 'jobs' && <JobsPage token={token} connected={connected} jobs={jobs} loading={jobsLoading}
         onRefresh={refreshJobs} openAccess={openAccess}/>}
