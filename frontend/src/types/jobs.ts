@@ -1,5 +1,5 @@
 export type JobStatus = 'queued' | 'running' | 'retrying' | 'completed' | 'failed';
-export type JobType = 'inference' | 'rag';
+export type JobType = 'inference' | 'rag' | 'agent';
 export interface Job {
   id: string;
   prompt: string;
