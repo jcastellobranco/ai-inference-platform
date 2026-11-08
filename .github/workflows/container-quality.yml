@@ -36,7 +36,7 @@ jobs:
           load: true
           tags: atlas-${{ matrix.name }}:ci
       - name: Scan image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: atlas-${{ matrix.name }}:ci
           format: table
