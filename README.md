@@ -18,7 +18,7 @@ Reference portfolio platform for tenant-isolated, authenticated inference jobs, 
 
 - Git, Docker Engine and Docker Compose plugin
 - Enough disk and RAM for PostgreSQL, pgvector and the sentence-transformers embedding model
-- For the integrated stack: clone all three sibling repositories
+- For the RAG/evaluation stack: clone the three repositories shown below; for the optional agent integration, also clone Multi-Agent and MCP
 - Optional: Python and Node.js for running backend/frontend outside containers
 
 ## Quick start — integrated stack
@@ -52,6 +52,19 @@ docker compose -f docker-compose.fullstack.yml -f docker-compose.integrated.yml 
 ```
 
 A successful run prints `SUCCESS: RAG ingestion -> PostgreSQL job -> worker -> evaluation API`. This smoke test is **not** run by standard CI. It exercises real container HTTP integration, not the correctness of optional external LLM responses.
+
+## Optional Multi-Agent + MCP integration
+
+ATLAS can now enqueue `POST /v1/agent/jobs` through its existing JWT/tenant-bound API, PostgreSQL queue and worker. The worker calls the private Multi-Agent HTTP API, which invokes a **real MCP stdio tool**. The default agent planner is deterministic/offline, and the end-to-end integration is **not yet verified by a running Compose smoke test**.
+
+Clone `multi-agent-orchestration` and `mcp-tool-platform` alongside the three repositories above. Add a unique `ATLAS_AGENT_SERVICE_KEY` of at least 32 characters to `.env`, then run:
+
+```bash
+docker compose -f docker-compose.fullstack.yml -f docker-compose.integrated.yml -f docker-compose.agents.yml up -d --build
+docker compose -f docker-compose.fullstack.yml -f docker-compose.integrated.yml -f docker-compose.agents.yml --profile smoke run --rm agent-smoke
+```
+
+See [agent integration setup and architecture](docs/AGENT_INTEGRATION.md) for the full procedure and limitations.
 
 ## Minimal stack (without RAG/evaluation)
 
