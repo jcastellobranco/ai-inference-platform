@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Button, Field, Textarea } from '../components/ui';
+import { Button, Field, Tabs, Textarea } from '../components/ui';
 import { EmptyState } from '../components/EmptyState';
 import { SectionHeader } from '../components/SectionHeader';
 import { StatusBadge } from '../components/StatusBadge';
@@ -68,10 +68,12 @@ export function PlaygroundPage({ token, connected, jobs, refreshJobs, openAccess
       <section className="panel query-panel">
         <div className="panel-topline"><span className="eyebrow">QUERY BUILDER</span><span className="step-chip">02 / EXPLORE</span></div>
         <h3>Ask better questions.</h3><p className="muted">Query your indexed content with lexical and semantic search combined using Reciprocal Rank Fusion.</p>
-        <div className="mode-switch" role="group" aria-label="Query mode">
-          <button type="button" className={mode === 'retrieve' ? 'selected' : ''} onClick={() => setMode('retrieve')}>⌕ Inspect retrieval</button>
-          <button type="button" className={mode === 'rag' ? 'selected' : ''} onClick={() => setMode('rag')}>✧ Ask AI</button>
-        </div>
+        <Tabs.Root value={mode} onValueChange={value => setMode(value as 'retrieve' | 'rag')}>
+          <Tabs.List className="mode-switch" aria-label="Query mode">
+            <Tabs.Trigger value="retrieve">⌕ Inspect retrieval</Tabs.Trigger>
+            <Tabs.Trigger value="rag">✧ Ask AI</Tabs.Trigger>
+          </Tabs.List>
+        </Tabs.Root>
         <form onSubmit={event => void submit(event)}>
           {conversationContext && mode === 'rag' && <p className="inline-hint">Previous question: {conversationContext.slice(0, 160)} <button type="button" onClick={() => setConversationContext('')}>Clear context</button></p>}
           <Field.Root id="query-question"><Field.Label>Your question</Field.Label>
