@@ -8,9 +8,12 @@ from pydantic import BaseModel, Field
 from sqlalchemy import text
 from .db import tenant_session
 from .request_logging import RequestLoggingMiddleware
+from .telemetry import configure_telemetry, metrics_app
 
 app = FastAPI(title="Multi-Tenant AI Platform", version="0.1.0")
 app.add_middleware(RequestLoggingMiddleware)
+app.mount('/metrics', metrics_app)
+configure_telemetry(app)
 bearer = HTTPBearer()
 ISSUER = os.environ.get("JWT_ISSUER", "portfolio-dev")
 AUDIENCE = os.environ.get("JWT_AUDIENCE", "ai-platform")
