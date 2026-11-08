@@ -9,6 +9,7 @@ from uuid import uuid4
 from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger("atlas.http")
+from .telemetry import REQUESTS, LATENCY
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
@@ -26,6 +27,8 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             # Avoid raw URLs, which may contain customer identifiers.
             route = request.scope.get("route")
             route_pattern = getattr(route, "path", "unmatched")
+            REQUESTS.labels(method=request.method, route=route_pattern, status=str(status)).inc()
+            LATENCY.labels(method=request.method, route=route_pattern).observe(elapsed_ms / 1000)
             logger.info(
                 "http_request method=%s route=%s status=%s duration_ms=%.2f request_id=%s",
                 request.method, route_pattern, status, elapsed_ms, request_id,
