@@ -22,6 +22,7 @@ const examples = [
 
 export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: Props) {
   const [question, setQuestion] = useState('');
+  const [workflow, setWorkflow] = useState<'tools' | 'research'>('tools');
   const [jobId, setJobId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +31,7 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
 
   useEffect(() => {
     setQuestion('');
+    setWorkflow('tools');
     setJobId(null);
     setError(null);
     setSubmitting(false);
@@ -48,7 +50,7 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
     setSubmitting(true);
     setError(null);
     try {
-      const created = await jobsApi.createAgent(submittedToken, trimmed);
+      const created = await jobsApi.createAgent(submittedToken, trimmed, workflow);
       if (tokenRef.current !== submittedToken) return;
       setJobId(created.id);
       await refreshJobs();
@@ -68,8 +70,14 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
       <section className="panel query-panel">
         <div className="panel-topline"><span className="eyebrow">WORKFLOW BUILDER</span><span className="step-chip">EXPERIMENTAL</span></div>
         <h3>Run an agent workflow</h3>
-        <p className="muted">This first integration uses a deterministic planner and a real MCP word-count tool. It does not yet perform document analysis or LLM reasoning.</p>
+        <p className="muted">Choose a local MCP tools run or a LangGraph research workflow grounded in documents indexed by RAG. Neither mode uses an LLM yet.</p>
         <form onSubmit={event => void submit(event)}>
+          <label htmlFor="agent-workflow">Execution mode</label>
+          <select id="agent-workflow" value={workflow}
+            onChange={event => setWorkflow(event.target.value as 'tools' | 'research')}>
+            <option value="tools">MCP tools · deterministic</option>
+            <option value="research">Research · LangGraph + RAG + MCP</option>
+          </select>
           <label htmlFor="agent-question">Task</label>
           <textarea id="agent-question" rows={6} maxLength={2000} value={question}
             onChange={event => setQuestion(event.target.value)}
@@ -94,6 +102,7 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
           <div className="result-summary"><span>✧</span><strong>Agent job</strong>{active && <StatusBadge status={active.status} />}</div>
           <code className="job-reference">{jobId}</code>
           {result ? <>
+            {result.research && <section className="eval-box"><strong>Research findings</strong><p className="muted">Status: {result.research.status}</p>{result.research.findings.map((finding, index) => <article className="evidence-item" key={index}><strong>{finding.source}</strong><p>{finding.observation}</p><small>{finding.chunk_id ?? 'No chunk ID'}</small></article>)}</section>}
             <div className="answer-panel">
               <span className="eyebrow">EXECUTION COMPLETE · {result.engine}</span>
               <p>{Object.entries(result.results).map(([id, output]) =>
@@ -120,7 +129,7 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
             <p className="error-message" role="alert">{active.error || 'Agent execution failed'}</p> :
             <p className="muted">The worker is processing this job. Status refreshes automatically while jobs are active.</p>}
         </>}
-        <div className="results-note"><span>ⓘ</span><p>Runs are authenticated by ATLAS and stored in its PostgreSQL job queue. This local demo currently supports one deterministic MCP tool per request.</p></div>
+        <div className="results-note"><span>ⓘ</span><p>Runs are authenticated by ATLAS and stored in its PostgreSQL job queue. Research mode retrieves indexed document evidence using tenant-bound RAG, then runs the bounded MCP tool plan. It is not yet an LLM-generated answer.</p></div>
       </section>
     </div>
     <section className="panel jobs-panel" style={{ marginTop: 22 }}>
