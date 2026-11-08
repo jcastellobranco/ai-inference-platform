@@ -30,6 +30,8 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r backend/requirements-dev.txt
+      - name: Check Python syntax
+        run: python -m compileall -q backend
       - name: Prepare schema and RLS runtime role
         env:
           PGPASSWORD: app
