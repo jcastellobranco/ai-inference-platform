@@ -66,3 +66,13 @@ If an agent job fails, inspect `docker compose ... logs worker agent backend`. A
 ## Next steps
 
 Add an authenticated React UI for agent job submission and status; integrate RAG evidence into the agent workflow; use a hybrid replan strategy; add cross-service tracing and benchmarks.
+
+## Document-grounded research workflow (experimental)
+
+The ATLAS Multi-Agent React page now offers two execution modes: **MCP tools** and **Research (LangGraph + RAG + MCP)**. The authenticated ATLAS API accepts `{"question":"...","workflow":"research"}` at `POST /v1/agent/jobs`. The database migration `009_agent_workflow.sql` stores the choice, and the existing worker forwards it to the private agent API.
+
+Research mode invokes the existing four-stage LangGraph (planner/researcher/analyst/reviewer), retrieving evidence from the tenant-bound RAG vector service; then it invokes the existing scoped MCP tool. Its result includes `research.findings`, `research.trace`, and MCP `trace`. A lack of retrieved evidence is recorded as `insufficient_evidence`, not a fabricated answer. No model synthesis or RAG-to-MCP argument chaining is implemented yet.
+
+For research mode the `agent` container requires `ATLAS_RAG_URL`, `ATLAS_RAG_API_KEY`, `ATLAS_TENANT_ID`, provided by `docker-compose.agents.yml` when layered with `docker-compose.integrated.yml`. Do not publish the agent service port. The ATLAS frontend never receives RAG or MCP credentials.
+
+**Not yet validated in Docker:** run the backend, frontend, Multi-Agent and RAG test suites, then submit a research job after ingesting documents. The existing `agent-smoke` tests only the default tools workflow; it does not exercise research mode.
