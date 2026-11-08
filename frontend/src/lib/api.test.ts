@@ -38,7 +38,7 @@ describe('jobsApi', () => {
     const [url, options] = fetchMock.mock.calls[0];
     expect(url).toContain('/v1/agent/jobs');
     expect(options.headers.Authorization).toBe('Bearer tenant-jwt');
-    expect(JSON.parse(options.body)).toEqual({ question: 'Count three words' });
+    expect(JSON.parse(options.body)).toEqual({ question: 'Count three words', workflow: 'tools' });
   });
 
   it('reports HTTP failures without leaking response content', async () => {
