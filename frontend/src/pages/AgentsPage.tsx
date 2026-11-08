@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Button, Field, Select, Textarea } from '../components/ui';
 import { EmptyState } from '../components/EmptyState';
 import { SectionHeader } from '../components/SectionHeader';
 import { StatusBadge } from '../components/StatusBadge';
@@ -72,20 +73,24 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
         <h3>Run an agent workflow</h3>
         <p className="muted">Choose a local MCP tools run or a LangGraph research workflow grounded in documents indexed by RAG. Neither mode uses an LLM yet.</p>
         <form onSubmit={event => void submit(event)}>
-          <label htmlFor="agent-workflow">Execution mode</label>
-          <select id="agent-workflow" value={workflow}
-            onChange={event => setWorkflow(event.target.value as 'tools' | 'research')}>
-            <option value="tools">MCP tools · deterministic</option>
-            <option value="research">Research · LangGraph + RAG + MCP</option>
-          </select>
-          <label htmlFor="agent-question">Task</label>
-          <textarea id="agent-question" rows={6} maxLength={2000} value={question}
-            onChange={event => setQuestion(event.target.value)}
-            placeholder="Describe a task for the local agent pipeline..." required />
-          <button className="button-primary wide-button" type="submit"
+          <Field.Root id="agent-workflow">
+            <Field.Label>Execution mode</Field.Label>
+            <Select.Control value={workflow}
+              onChange={event => setWorkflow(event.target.value as 'tools' | 'research')}>
+              <Select.Option value="tools">MCP tools · deterministic</Select.Option>
+              <Select.Option value="research">Research · LangGraph + RAG + MCP</Select.Option>
+            </Select.Control>
+          </Field.Root>
+          <Field.Root id="agent-question">
+            <Field.Label>Task</Field.Label>
+            <Textarea rows={6} maxLength={2000} value={question}
+              onChange={event => setQuestion(event.target.value)}
+              placeholder="Describe a task for the local agent pipeline..." required />
+          </Field.Root>
+          <Button className="wide-button" type="submit"
             disabled={!connected || submitting || !question.trim()}>
             {submitting ? 'Submitting…' : 'Queue agent workflow ↗'}
-          </button>
+          </Button>
         </form>
         {!connected && <p className="inline-hint">To run agents, <button type="button" onClick={openAccess}>connect your JWT →</button></p>}
         {error && <p className="error-message" role="alert">{error}</p>}
