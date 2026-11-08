@@ -31,6 +31,7 @@ services:
         psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/006_retry_state.sql
         psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/007_rag_jobs.sql
         psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/008_agent_jobs.sql
+        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/009_agent_workflow.sql
     restart: "no"
   backend:
     build:
