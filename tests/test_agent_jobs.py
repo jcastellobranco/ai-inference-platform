@@ -1,9 +1,12 @@
 import asyncio
-import json
+import sys
+from pathlib import Path
 from uuid import UUID
 
-import httpx
 import pytest
+
+# The backend is a separate application, not part of the root src/ package.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
 from app.agent_jobs import AgentConfigurationError, execute_agent
 
