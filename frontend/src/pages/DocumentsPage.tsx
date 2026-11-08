@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react';
-import { Button, Field, Input, Textarea } from '../components/ui';
+import { Button, Field, Input, Tabs, Textarea } from '../components/ui';
 import { EmptyState } from '../components/EmptyState';
 import { SectionHeader } from '../components/SectionHeader';
 import { knowledgeApi } from '../lib/knowledgeApi';
@@ -61,10 +61,12 @@ export function DocumentsPage({ token, connected, documents, loading, busy, erro
         <div className="panel-topline"><span className="eyebrow">INGESTION</span><span className="step-chip">01 / INDEX</span></div>
         <h3>Add to your knowledge</h3>
         <p className="muted">Upload a PDF or paste plain text. Content is sent to the authenticated backend, never directly to the private RAG service.</p>
-        <div className="mode-switch" role="group" aria-label="Document input">
-          <button type="button" className={mode === 'pdf' ? 'selected' : ''} onClick={() => setMode('pdf')}>▤ PDF upload</button>
-          <button type="button" className={mode === 'text' ? 'selected' : ''} onClick={() => setMode('text')}>≡ Plain text</button>
-        </div>
+        <Tabs.Root value={mode} onValueChange={value => setMode(value as 'pdf' | 'text')}>
+          <Tabs.List className="mode-switch" aria-label="Document input">
+            <Tabs.Trigger value="pdf">▤ PDF upload</Tabs.Trigger>
+            <Tabs.Trigger value="text">≡ Plain text</Tabs.Trigger>
+          </Tabs.List>
+        </Tabs.Root>
         <form onSubmit={event => void submit(event)}>
           {mode === 'pdf' ? <>
             <input ref={fileRef} className="sr-only" id="pdf-file" type="file" accept=".pdf,application/pdf"
