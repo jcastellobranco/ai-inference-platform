@@ -26,10 +26,10 @@ async def execute_agent(job: dict) -> str:
         response = await client.post(
             f"{url}/internal/v1/execute",
             headers={"x-atlas-service-key": key},
-            json={"question": job["prompt"], "tenant_id": tenant, "planner": "offline"},
+            json={"question": job["prompt"], "tenant_id": tenant, "planner": "offline", "workflow": job.get("agent_workflow", "tools")},
         )
         response.raise_for_status()
         body = response.json()
-    if not isinstance(body, dict) or body.get("status") != "completed":
+    if not isinstance(body, dict) or body.get("status") not in {"completed", "insufficient_evidence"}:
         raise ValueError("Invalid agent response")
     return json.dumps(body, ensure_ascii=False)
