@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Button, Field, Textarea } from '../components/ui';
 import { EmptyState } from '../components/EmptyState';
 import { SectionHeader } from '../components/SectionHeader';
 import { StatusBadge } from '../components/StatusBadge';
@@ -73,18 +74,18 @@ export function PlaygroundPage({ token, connected, jobs, refreshJobs, openAccess
         </div>
         <form onSubmit={event => void submit(event)}>
           {conversationContext && mode === 'rag' && <p className="inline-hint">Previous question: {conversationContext.slice(0, 160)} <button type="button" onClick={() => setConversationContext('')}>Clear context</button></p>}
-          <label htmlFor="query-question">Your question</label>
-          <textarea id="query-question" rows={6} maxLength={2000} value={question}
+          <Field.Root id="query-question"><Field.Label>Your question</Field.Label>
+          <Textarea rows={6} maxLength={2000} value={question}
             onChange={event => setQuestion(event.target.value)}
-            placeholder="What would you like to know about your documents?" required />
+            placeholder="What would you like to know about your documents?" required /></Field.Root>
           {mode === 'rag' && <>
-            <label htmlFor="query-reference">Expected answer <span className="optional">OPTIONAL · ENABLES EVALUATION</span></label>
-            <textarea id="query-reference" rows={3} maxLength={16000} value={reference}
-              onChange={event => setReference(event.target.value)} placeholder="Provide a reference to measure exact match and token F1." />
+            <Field.Root id="query-reference"><Field.Label>Expected answer <span className="optional">OPTIONAL · ENABLES EVALUATION</span></Field.Label>
+            <Textarea rows={3} maxLength={16000} value={reference}
+              onChange={event => setReference(event.target.value)} placeholder="Provide a reference to measure exact match and token F1." /></Field.Root>
           </>}
-          <button type="submit" className="button-primary wide-button" disabled={!connected || busy || !question.trim()}>
+          <Button type="submit" className="wide-button" disabled={!connected || busy || !question.trim()}>
             {busy ? 'Processing…' : mode === 'retrieve' ? 'Search knowledge base' : 'Ask AI · queue job'} <span>↗</span>
-          </button>
+          </Button>
         </form>
         {!connected && <p className="inline-hint">To query your documents, <button onClick={openAccess}>connect your JWT →</button></p>}
         {error && <p className="error-message" role="alert">{error}</p>}
