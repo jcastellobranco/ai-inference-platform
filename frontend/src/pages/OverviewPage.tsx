@@ -1,3 +1,4 @@
+import { Button } from '../components/ui';
 import { EmptyState } from '../components/EmptyState';
 import { SectionHeader } from '../components/SectionHeader';
 import { StatCard } from '../components/StatCard';
@@ -23,8 +24,8 @@ export function OverviewPage({ jobs, documents, connected, navigate, openAccess 
         <h1>Build with context.<br/><em>Operate with confidence.</em></h1>
         <p>One workspace to index knowledge, explore retrieval, run agent workflows and monitor AI operations.</p>
         <div className="hero-actions">
-          <button className="button-primary button-large" onClick={() => navigate('playground')}>Open playground <span>↗</span></button>
-          <button className="button-ghost" onClick={() => navigate('documents')}>Manage knowledge <span>→</span></button>
+          <Button className="button-large" onClick={() => navigate('playground')}>Open playground <span>↗</span></Button>
+          <Button variant="ghost" onClick={() => navigate('documents')}>Manage knowledge <span>→</span></Button>
         </div>
       </div>
       <div className="hero-decoration" aria-hidden="true">
@@ -44,10 +45,10 @@ export function OverviewPage({ jobs, documents, connected, navigate, openAccess 
           action={<button className="text-button" onClick={() => navigate('jobs')}>View all ↗</button>}/>
         {!connected ? <EmptyState icon="◇" title="Connect your workspace"
           description="Provide a developer JWT to load your tenant-scoped runs."
-          action={<button className="button-primary" onClick={openAccess}>Connect JWT</button>} /> :
+          action={<Button onClick={openAccess}>Connect JWT</Button>} /> :
           jobs.length === 0 ? <EmptyState icon="◷" title="No runs yet"
             description="Start with an inference prompt or ask your knowledge base a question."
-            action={<button className="button-secondary" onClick={() => navigate('playground')}>Start a run →</button>} /> :
+            action={<Button variant="secondary" onClick={() => navigate('playground')}>Start a run →</Button>} /> :
           <div className="activity-list">{jobs.slice(0, 5).map(job =>
             <div className="activity-row" key={job.id}>
               <div className="activity-icon">✧</div>
