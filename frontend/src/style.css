@@ -32,3 +32,10 @@ button.button-primary,.button-primary{background:#9ebaff;border:1px solid #9ebaf
 .ui-field-description{color:#9cabc5;font-size:12px;margin:7px 0}
 .ui-field-error{color:#ffc4d0;font-size:12px;margin:7px 0}
 .ui-field [aria-invalid="true"]{border-color:#e48b9e}
+
+/* Form layout compatibility after introducing Field.Root wrappers. */
+.panel form > .ui-field,.access-dialog form > .ui-field{margin-bottom:14px}
+.panel .ui-field > label,.access-dialog .ui-field > label{display:block;margin-bottom:8px}
+.quick-job-form > .ui-field{flex:1;min-width:0}
+.quick-job-form > .ui-field > .ui-input{width:100%}
+.access-dialog .ui-field .jwt-input{width:100%}
