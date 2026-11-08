@@ -27,6 +27,20 @@ describe('jobsApi', () => {
     });
   });
 
+  it('submits an agent task to the authenticated ATLAS job endpoint', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 'agent-1', status: 'queued', job_type: 'agent' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const response = await jobsApi.createAgent('tenant-jwt', 'Count three words');
+    expect(response.job_type).toBe('agent');
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toContain('/v1/agent/jobs');
+    expect(options.headers.Authorization).toBe('Bearer tenant-jwt');
+    expect(JSON.parse(options.body)).toEqual({ question: 'Count three words' });
+  });
+
   it('reports HTTP failures without leaking response content', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403 }));
     await expect(jobsApi.list('restricted-token')).rejects.toMatchObject({ status: 403 });
