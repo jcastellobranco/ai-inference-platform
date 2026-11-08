@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Field, Input } from '../components/ui';
+import { Button, Field, Input, Tabs } from '../components/ui';
 import { EmptyState } from '../components/EmptyState';
 import { SectionHeader } from '../components/SectionHeader';
 import { StatusBadge } from '../components/StatusBadge';
@@ -46,11 +46,12 @@ export function JobsPage({ token, connected, jobs, loading, onRefresh, openAcces
     </section>
     <section className="panel jobs-panel">
       <div className="jobs-toolbar"><div><span className="eyebrow">RECENT ACTIVITY</span><h3>Execution log <span className="count-chip">{jobs.length}</span></h3></div>
-        <div className="filter-tabs" role="group" aria-label="Filter jobs">
-          {(['all','active','completed','failed'] as const).map(item =>
-            <button type="button" key={item} onClick={() => setFilter(item)}
-              className={filter === item ? 'selected' : ''}>{item}</button>)}
-        </div>
+        <Tabs.Root value={filter} onValueChange={value => setFilter(value as typeof filter)}>
+          <Tabs.List className="filter-tabs" aria-label="Filter jobs">
+            {(['all','active','completed','failed'] as const).map(item =>
+              <Tabs.Trigger key={item} value={item}>{item}</Tabs.Trigger>)}
+          </Tabs.List>
+        </Tabs.Root>
       </div>
       {!connected ? <EmptyState icon="◇" title="Connect to view jobs" description="Job history is scoped to the authenticated tenant." /> :
         filtered.length === 0 ? <EmptyState icon="◷" title="No matching executions" description="New runs appear here after submission. Change the filter to view other jobs." /> :
