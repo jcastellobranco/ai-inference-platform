@@ -11,6 +11,9 @@ services:
       MCP_TOOL_PROJECT_DIR: /opt/mcp-tool-platform
       MCP_ALLOWED_SCOPES: text:read,text:hash
       MCP_PYTHON: python
+      ATLAS_RAG_URL: http://rag:8000
+      ATLAS_RAG_API_KEY: ${RAG_API_KEY:?Set RAG_API_KEY}
+      ATLAS_TENANT_ID: "11111111-1111-4111-8111-111111111111"
     volumes:
       - ../mcp-tool-platform:/opt/mcp-tool-platform:ro
     read_only: true
