@@ -36,7 +36,7 @@ def claim_job(sessions):
                 leased_until=now() + (:lease * interval '1 second'),
                 worker_id=:worker, lease_token=:token
             FROM candidate WHERE j.id=candidate.id
-            RETURNING j.id, j.tenant_id, j.prompt, j.attempts, j.lease_token, j.job_type, j.reference_answer
+            RETURNING j.id, j.tenant_id, j.prompt, j.attempts, j.lease_token, j.job_type, j.reference_answer, j.agent_workflow
         """), {"max_attempts": MAX_ATTEMPTS, "lease": LEASE_SECONDS,
                "worker": WORKER_ID, "token": lease_token}).mappings().first()
         return dict(row) if row else None
