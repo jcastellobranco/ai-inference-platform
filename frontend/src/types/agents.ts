@@ -7,6 +7,8 @@ export interface AgentTraceStep {
 
 export interface AgentResult {
   engine: 'mcp-planned';
+  workflow?: 'tools' | 'research';
+  research?: { status: string; approved: boolean; findings: Array<{ source: string; observation: string; chunk_id?: string | null }> };
   status: 'completed';
   planner: 'offline' | 'llm';
   results: Record<string, Record<string, unknown>>;
