@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Button, Field, Input } from '../components/ui';
 import { EmptyState } from '../components/EmptyState';
 import { SectionHeader } from '../components/SectionHeader';
 import { StatusBadge } from '../components/StatusBadge';
@@ -35,11 +36,11 @@ export function JobsPage({ token, connected, jobs, loading, onRefresh, openAcces
       action={<button className="button-secondary" onClick={() => void onRefresh()} disabled={!connected || loading}>{loading ? 'Refreshing…' : '↻ Refresh jobs'}</button>}/>
     <section className="panel quick-job">
       <div><span className="eyebrow">QUICK INFERENCE</span><h3>Run a test prompt</h3><p className="muted">The default inference worker transforms the input to uppercase for a deterministic end-to-end demo.</p></div>
-      <div className="quick-job-form"><input aria-label="Inference prompt" maxLength={8000} value={prompt}
+      <div className="quick-job-form"><Field.Root id="inference-prompt"><Field.Label className="sr-only">Inference prompt</Field.Label><Input maxLength={8000} value={prompt}
         onChange={event => setPrompt(event.target.value)} placeholder="Type an inference prompt…"
-        onKeyDown={event => { if (event.key === 'Enter') void submit(); }} />
-        <button className="button-primary" type="button" disabled={!connected || submitting || !prompt.trim()}
-          onClick={() => void submit()}>{submitting ? 'Queuing…' : 'Run inference ↗'}</button></div>
+        onKeyDown={event => { if (event.key === 'Enter') void submit(); }} /></Field.Root>
+        <Button type="button" disabled={!connected || submitting || !prompt.trim()}
+          onClick={() => void submit()}>{submitting ? 'Queuing…' : 'Run inference ↗'}</Button></div>
       {error && <p role="alert" className="error-message">{error}</p>}
       {!connected && <p className="inline-hint">Connect to run inference. <button onClick={openAccess}>Connect JWT →</button></p>}
     </section>
