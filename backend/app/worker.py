@@ -90,6 +90,9 @@ async def run_forever():
             if job["job_type"] == "rag":
                 from .rag_jobs import execute_rag
                 operation = execute_rag(job)
+            elif job["job_type"] == "agent":
+                from .agent_jobs import execute_agent
+                operation = execute_agent(job)
             else:
                 operation = infer(job["prompt"])
             output = await asyncio.wait_for(operation, timeout=LEASE_SECONDS - 5)
