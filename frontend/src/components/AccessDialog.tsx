@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Button, Field, Textarea } from './ui';
 interface Props { token: string; onChange: (token: string) => void; onClose: () => void; onConnected: () => void }
 export function AccessDialog({ token, onChange, onClose, onConnected }: Props) {
   const [draft, setDraft] = useState(token);
@@ -20,15 +21,15 @@ export function AccessDialog({ token, onChange, onClose, onConnected }: Props) {
       <h2 id="access-title">Connect your workspace</h2>
       <p className="muted">Paste a short-lived developer JWT. Credentials stay in tab memory and are never saved to disk.</p>
       <form onSubmit={submit}>
-        <label htmlFor="access-jwt">JWT access token</label>
-        <textarea id="access-jwt" className="jwt-input" spellCheck={false} autoComplete="off"
+        <Field.Root id="access-jwt"><Field.Label>JWT access token</Field.Label>
+        <Textarea className="jwt-input" spellCheck={false} autoComplete="off"
           value={draft} onChange={event => setDraft(event.target.value)}
-          placeholder="eyJhbGciOiJIUzI1NiIs..." rows={3} />
+          placeholder="eyJhbGciOiJIUzI1NiIs..." rows={3} /></Field.Root>
         <div className="dialog-actions">
           <button className="button-quiet" type="button" onClick={onClose}>Cancel</button>
-          <button className="button-primary" type="submit" disabled={!draft.trim()}>
+          <Button type="submit" disabled={!draft.trim()}>
             Connect workspace <span>↗</span>
-          </button>
+          </Button>
         </div>
       </form>
       {token && <button className="disconnect" type="button"
