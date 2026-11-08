@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react';
+import { Button, Field, Input, Textarea } from '../components/ui';
 import { EmptyState } from '../components/EmptyState';
 import { SectionHeader } from '../components/SectionHeader';
 import { knowledgeApi } from '../lib/knowledgeApi';
@@ -76,18 +77,18 @@ export function DocumentsPage({ token, connected, documents, loading, busy, erro
               <small>{file ? `${(file.size / 1024).toFixed(1)} KB · Ready to upload` : 'PDF only · Up to 10 MiB · Max 100 pages'}</small>
             </button>
           </> : <>
-            <label htmlFor="source-name">Source label</label>
-            <input id="source-name" value={source} maxLength={256} placeholder="architecture-notes.md"
-              onChange={event => setSource(event.target.value)} required />
-            <label htmlFor="document-content">Document content</label>
-            <textarea id="document-content" rows={8} maxLength={200000} value={content}
+            <Field.Root id="source-name"><Field.Label>Source label</Field.Label>
+            <Input value={source} maxLength={256} placeholder="architecture-notes.md"
+              onChange={event => setSource(event.target.value)} required /></Field.Root>
+            <Field.Root id="document-content"><Field.Label>Document content</Field.Label>
+            <Textarea rows={8} maxLength={200000} value={content}
               placeholder="Paste the content you want to make searchable..."
-              onChange={event => setContent(event.target.value)} required />
+              onChange={event => setContent(event.target.value)} required /></Field.Root>
             <div className="character-count">{content.length.toLocaleString()} / 200,000 characters</div>
           </>}
-          <button className="button-primary wide-button" disabled={!connected || busy || (mode === 'pdf' ? !file : !source.trim() || !content.trim())}>
+          <Button type="submit" className="wide-button" disabled={!connected || busy || (mode === 'pdf' ? !file : !source.trim() || !content.trim())}>
             {busy ? 'Indexing document…' : 'Index document'} <span>↗</span>
-          </button>
+          </Button>
         </form>
         {!connected && <p className="inline-hint">Connect your JWT to index documents. <button onClick={openAccess}>Connect now →</button></p>}
         {notice && <p className="notice" role="status">{notice}</p>}
