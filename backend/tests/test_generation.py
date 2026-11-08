@@ -19,23 +19,28 @@ def test_evidence_prompt_and_citation_validator():
         validate_citations("They go to Mars [2].",1)
 
 def test_generation_api_contract(monkeypatch):
-    monkeypatch.setenv("GENERATION_API_URL","https://models.example.test/v1")
+    monkeypatch.setenv("GENERATION_API_URL","https://api.openai.com/v1")
     monkeypatch.setenv("GENERATION_API_KEY","model-secret")
     monkeypatch.setenv("GENERATION_MODEL","test-model")
     def handler(req):
         assert req.headers["Authorization"]=="Bearer model-secret"
-        assert str(req.url)=="https://models.example.test/v1/chat/completions"
+        assert str(req.url)=="https://api.openai.com/v1/chat/completions"
         payload=json.loads(req.content)
         assert payload["model"]=="test-model"
-        assert payload["temperature"]==0
+        assert payload["max_completion_tokens"]==500
         assert payload["messages"][0]["role"]=="system"
         return httpx.Response(200,json={"choices":[{"message":{"content":"Pods run on nodes [1]."}}]})
     result=asyncio.run(generate_answer("Where?",EVIDENCE,
                                       transport=httpx.MockTransport(handler)))
-    assert result=={"answer":"Pods run on nodes [1].","citation_numbers":[1],"model":"test-model"}
+    assert result["answer"]=="Pods run on nodes [1]."
+    assert result["citation_numbers"]==[1]
+    assert result["model"]=="test-model"
+    assert result["telemetry"]["provider_calls"]==1
+    assert result["telemetry"]["repair_attempted"] is False
+    assert result["usage"]=={"input_tokens":None,"output_tokens":None}
 
 def test_generation_refuses_unattributed_output(monkeypatch):
-    monkeypatch.setenv("GENERATION_API_URL","https://models.example.test/v1")
+    monkeypatch.setenv("GENERATION_API_URL","https://api.openai.com/v1")
     monkeypatch.setenv("GENERATION_API_KEY","model-secret")
     monkeypatch.setenv("GENERATION_MODEL","test-model")
     transport=httpx.MockTransport(lambda req:httpx.Response(
@@ -74,3 +79,13 @@ def test_no_evidence_must_not_call_model(monkeypatch):
     })))
     assert result["mode"]=="insufficient_evidence"
     assert result["citations"]==[]
+
+def test_generation_rejects_unapproved_provider_before_network(monkeypatch):
+    monkeypatch.setenv("GENERATION_API_URL", "https://models.example.test/v1")
+    monkeypatch.setenv("GENERATION_API_KEY", "model-secret")
+    monkeypatch.setenv("GENERATION_MODEL", "test-model")
+    def unexpected_request(req):
+        raise AssertionError("Disallowed provider must never be contacted")
+    with pytest.raises(RuntimeError, match="api.openai.com"):
+        asyncio.run(generate_answer("Where?", EVIDENCE,
+                                    transport=httpx.MockTransport(unexpected_request)))
