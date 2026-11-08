@@ -9,7 +9,7 @@ export interface AgentResult {
   engine: 'mcp-planned';
   workflow?: 'tools' | 'research';
   research?: { status: string; approved: boolean; findings: Array<{ source: string; observation: string; chunk_id?: string | null }> };
-  status: 'completed';
+  status: 'completed' | 'insufficient_evidence';
   planner: 'offline' | 'llm';
   results: Record<string, Record<string, unknown>>;
   trace: AgentTraceStep[];
@@ -25,7 +25,7 @@ export function parseAgentResult(value: string | null): AgentResult | null {
     const parsed: unknown = JSON.parse(value);
     if (!parsed || typeof parsed !== 'object') return null;
     const item = parsed as Record<string, unknown>;
-    if (item.engine !== 'mcp-planned' || item.status !== 'completed' ||
+    if (item.engine !== 'mcp-planned' || !['completed', 'insufficient_evidence'].includes(String(item.status)) ||
         !item.results || typeof item.results !== 'object' ||
         !Array.isArray(item.trace) || typeof item.duration_ms !== 'number') return null;
     return parsed as AgentResult;
