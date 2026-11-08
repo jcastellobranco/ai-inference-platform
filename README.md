@@ -55,7 +55,7 @@ A successful run prints `SUCCESS: RAG ingestion -> PostgreSQL job -> worker -> e
 
 ## Optional Multi-Agent + MCP integration
 
-ATLAS can now enqueue `POST /v1/agent/jobs` through its existing JWT/tenant-bound API, PostgreSQL queue and worker. The worker calls the private Multi-Agent HTTP API, which invokes a **real MCP stdio tool**. The default agent planner is deterministic/offline, and the end-to-end integration is **not yet verified by a running Compose smoke test**.
+The React frontend now includes a **Multi-Agent** workspace for task submission, status, MCP tool outputs and execution traces. ATLAS can enqueue `POST /v1/agent/jobs` through its existing JWT/tenant-bound API, PostgreSQL queue and worker. The worker calls the private Multi-Agent HTTP API, which invokes a **real MCP stdio tool**. The default agent planner is deterministic/offline, and the end-to-end integration is **not yet verified by a running Compose smoke test**.
 
 Clone `multi-agent-orchestration` and `mcp-tool-platform` alongside the three repositories above. Add a unique `ATLAS_AGENT_SERVICE_KEY` of at least 32 characters to `.env`, then run:
 
