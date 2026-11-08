@@ -7,8 +7,10 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from .db import tenant_session
+from .request_logging import RequestLoggingMiddleware
 
 app = FastAPI(title="Multi-Tenant AI Platform", version="0.1.0")
+app.add_middleware(RequestLoggingMiddleware)
 bearer = HTTPBearer()
 ISSUER = os.environ.get("JWT_ISSUER", "portfolio-dev")
 AUDIENCE = os.environ.get("JWT_AUDIENCE", "ai-platform")
