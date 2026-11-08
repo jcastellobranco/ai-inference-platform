@@ -32,6 +32,10 @@ export const jobsApi = {
     request<{ id: string; status: string }>('/v1/jobs', token, {
       method: 'POST', body: JSON.stringify({ prompt }),
     }),
+  createAgent: (token: string, question: string) =>
+    request<{ id: string; status: string; job_type: 'agent' }>('/v1/agent/jobs', token, {
+      method: 'POST', body: JSON.stringify({ question }),
+    }),
   createRag: (token: string, question: string, referenceAnswer?: string) =>
     request<{ id: string; status: string; job_type: string }>('/v1/rag/jobs', token, {
       method: 'POST',
