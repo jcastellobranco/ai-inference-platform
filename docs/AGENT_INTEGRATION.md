@@ -76,3 +76,27 @@ Research mode invokes the existing four-stage LangGraph (planner/researcher/anal
 For research mode the `agent` container requires `ATLAS_RAG_URL`, `ATLAS_RAG_API_KEY`, `ATLAS_TENANT_ID`, provided by `docker-compose.agents.yml` when layered with `docker-compose.integrated.yml`. Do not publish the agent service port. The ATLAS frontend never receives RAG or MCP credentials.
 
 **Not yet validated in Docker:** run the backend, frontend, Multi-Agent and RAG test suites, then submit a research job after ingesting documents. The existing `agent-smoke` tests only the default tools workflow; it does not exercise research mode.
+
+## Optional grounded Research answer (new)
+
+Research now supports a cited natural-language answer after retrieval, using the existing ATLAS generation adapter in the **worker**. It is disabled by default and never sends provider credentials to the browser or agent container.
+
+Configure the root `.env` (do not commit secrets):
+
+```dotenv
+RAG_GENERATION_ENABLED=true
+GENERATION_API_URL=https://api.openai.com/v1
+GENERATION_API_KEY=<your-provider-key>
+GENERATION_MODEL=<your-supported-chat-model>
+GENERATION_MAX_OUTPUT_TOKENS=500
+```
+
+The existing adapter currently requires the OpenAI HTTPS endpoint shown above. Recreate the worker after changing these values:
+
+```bash
+docker compose -f docker-compose.fullstack.yml -f docker-compose.integrated.yml -f docker-compose.agents.yml up -d --build --force-recreate worker frontend
+```
+
+Submit a **new** Research run. Old persisted results remain unchanged. The UI displays the grounded answer with numbered source citations, and puts retrieved chunks in a collapsible evidence section. When generation is disabled it clearly says that no answer was generated and exposes the evidence. If evidence is insufficient, no answer is fabricated. Generation failures remain subject to existing worker retry behavior.
+
+Run the focused backend test: `pytest backend/tests/test_agent_generation.py` in an environment with backend dependencies installed. This change has not been validated by executing the Docker test suite.
