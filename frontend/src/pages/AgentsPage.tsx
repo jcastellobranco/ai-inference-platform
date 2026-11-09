@@ -5,6 +5,8 @@ import { EmptyState } from '../components/EmptyState';
 import { SectionHeader } from '../components/SectionHeader';
 import { StatusBadge } from '../components/StatusBadge';
 import { jobsApi } from '../lib/api';
+import { knowledgeApi } from '../lib/knowledgeApi';
+import type { KnowledgeDocument } from '../types/knowledge';
 import { parseAgentResult } from '../types/agents';
 import type { Job } from '../types/jobs';
 
@@ -24,6 +26,9 @@ const examples = [
 
 export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: Props) {
   const [question, setQuestion] = useState('');
+  const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
+  const [libraryError, setLibraryError] = useState<string | null>(null);
+  const [loadingLibrary, setLoadingLibrary] = useState(false);
   const [workflow, setWorkflow] = useState<'tools' | 'research' | 'compliance'>('compliance');
   const [jobId, setJobId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -33,11 +38,27 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
 
   useEffect(() => {
     setQuestion('');
+    setDocuments([]);
+    setLibraryError(null);
     setWorkflow('compliance');
     setJobId(null);
     setError(null);
     setSubmitting(false);
   }, [token]);
+
+  useEffect(() => {
+    if (!connected || !token) return;
+    let cancelled = false;
+    setLoadingLibrary(true);
+    void knowledgeApi.list(token).then(data => {
+      if (!cancelled) setDocuments(data.items);
+    }).catch(() => {
+      if (!cancelled) setLibraryError('Unable to load indexed documents.');
+    }).finally(() => {
+      if (!cancelled) setLoadingLibrary(false);
+    });
+    return () => { cancelled = true; };
+  }, [connected, token]);
 
   const active = jobs.find(job => job.id === jobId);
   const result = parseAgentResult(active?.result ?? null);
@@ -66,8 +87,8 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
   }
 
   return <>
-    <SectionHeader eyebrow="AGENT ORCHESTRATION" title="Multi-Agent workflows"
-      description="Submit tenant-bound agent jobs through ATLAS. Monitor the durable queue, MCP tool results and execution trace." />
+    <SectionHeader eyebrow="INTELLIGENT DOCUMENT REVIEW" title="AI Compliance Auditor"
+      description="Screen indexed documents for contractual safeguards and review source-backed findings. Human validation is required." />
     <div className="playground-grid">
       <section className="panel query-panel">
         <div className="panel-topline"><span className="eyebrow">WORKFLOW BUILDER</span><span className="step-chip">EXPERIMENTAL</span></div>
@@ -75,7 +96,7 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
         <p className="muted">Run a compliance screening against indexed documents, or use research and local MCP tools. Compliance findings are evidence candidates requiring human review. Research can generate a cited answer when an LLM provider is configured; otherwise it displays retrieved evidence.</p>
         <form onSubmit={event => void submit(event)}>
           <Field.Root id="agent-workflow">
-            <Field.Label>Execution mode</Field.Label>
+            <Field.Label>Type of analysis</Field.Label>
             <Select.Control value={workflow}
               onChange={event => setWorkflow(event.target.value as 'tools' | 'research' | 'compliance')}>
               <Select.Option value="compliance">Compliance Auditor · Supplier baseline</Select.Option>
@@ -84,26 +105,30 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
             </Select.Control>
           </Field.Root>
           <Field.Root id="agent-question">
-            <Field.Label>Task</Field.Label>
+            <Field.Label>3 · What would you like to review?</Field.Label>
             <Textarea rows={6} maxLength={2000} value={question}
               onChange={event => setQuestion(event.target.value)}
-              placeholder="Describe a task for the local agent pipeline..." required />
+              placeholder="Example: Review supplier agreements for confidentiality, data protection, incident notification and termination clauses." required />
           </Field.Root>
           <Button className="wide-button" type="submit"
-            disabled={!connected || submitting || !question.trim()}>
-            {submitting ? 'Submitting…' : 'Queue agent workflow ↗'}
+            disabled={!connected || submitting || !question.trim() || (workflow === "compliance" && (documents.length === 0 || loadingLibrary || Boolean(libraryError)))}>
+            {submitting ? 'Starting review…' : workflow === 'compliance' ? 'Start compliance screening ↗' : 'Run analysis ↗'}
           </Button>
         </form>
         {!connected && <p className="inline-hint">To run agents, <Button variant="unstyled" type="button" onClick={openAccess}>connect your JWT →</Button></p>}
         {error && <p className="error-message" role="alert">{error}</p>}
-        <div className="examples"><span className="eyebrow">EXAMPLE TASKS</span>
+        <details className="examples"><summary className="eyebrow">EXAMPLE QUESTIONS</summary>
           {examples.map(example => <Button variant="unstyled" key={example} type="button" className="example-item"
             onClick={() => setQuestion(example)}><span>{example}</span><span>↗</span></Button>)}
-        </div>
+        </details>
+        <details className="eval-box">
+          <summary>How does this work? · Technical details</summary>
+          <p className="muted">ATLAS queues a tenant-bound PostgreSQL job. The worker calls the research agent, which retrieves RAG evidence and returns a source-backed checklist. Execution traces remain available for troubleshooting.</p>
+        </details>
       </section>
       <section className="panel results-panel" aria-live="polite">
-        <div className="panel-topline"><span className="eyebrow">EXECUTION</span><span className="count-chip">MCP TRACE</span></div>
-        <h3>Results & execution trace</h3>
+        <div className="panel-topline"><span className="eyebrow">REVIEW RESULTS</span><span className="count-chip">AUDIT TRAIL</span></div>
+        <h3>Findings & evidence</h3>
         {!jobId ? <EmptyState icon="✧" title="No agent execution selected"
           description="Queue a workflow to see its status and MCP tool output." /> : <>
           <div className="result-summary"><span>✧</span><strong>Agent job</strong>{active && <StatusBadge status={active.status} />}</div>
@@ -162,22 +187,22 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
               </div>
               <p className="muted">Duration is reported by the agent service; it excludes queue wait and frontend polling.</p>
             </section>
-            <h4>Tool execution trace</h4>
+            <details><summary>Technical execution trace</summary>
             <div className="evidence-list">{result.trace.map((step, index) =>
               <article className="evidence-item" key={`${step.step}-${index}`}>
                 <div className="evidence-heading"><span className="evidence-number">{String(index + 1).padStart(2, '0')}</span>
                   <strong>{step.step}</strong><span className="evidence-method">{step.status}</span></div>
                 <p>{step.tool} · {step.duration_ms.toFixed(1)} ms</p>
-              </article>)}</div>
+              </article>)}</div></details>
           </> : active?.status === 'failed' ?
             <p className="error-message" role="alert">{active.error || 'Agent execution failed'}</p> :
             <p className="muted">The worker is processing this job. Status refreshes automatically while jobs are active.</p>}
         </>}
-        <div className="results-note"><span>ⓘ</span><p>Runs are authenticated by ATLAS and stored in its PostgreSQL job queue. Research mode retrieves indexed document evidence using tenant-bound RAG, then runs the bounded MCP tool plan. A cited LLM answer is available only when generation is configured; otherwise inspect the retrieved evidence.</p></div>
+        <div className="results-note"><span>ⓘ</span><p>Evidence screening is not a legal compliance verdict. Review the full documents before making decisions.</p></div>
       </section>
     </div>
     <section className="panel jobs-panel" style={{ marginTop: 22 }}>
-      <div className="panel-topline"><span className="eyebrow">RECENT AGENT RUNS</span>
+      <div className="panel-topline"><span className="eyebrow">RECENT REVIEWS</span>
         <Button variant="unstyled" type="button" className="button-secondary" onClick={() => void refreshJobs()} disabled={!connected}>↻ Refresh</Button></div>
       {agentHistory.length === 0 ? <p className="muted">Completed agent runs will appear here during this session.</p> :
         <Table.Scroll><Table.Root className="jobs-table"><Table.Header><Table.Row>
