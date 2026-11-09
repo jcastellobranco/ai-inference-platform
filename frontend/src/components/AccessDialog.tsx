@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Button, Field, Textarea } from './ui';
+import { Button, Dialog, Field, Textarea } from './ui';
 interface Props { token: string; onChange: (token: string) => void; onClose: () => void; onConnected: () => void }
 export function AccessDialog({ token, onChange, onClose, onConnected }: Props) {
   const [draft, setDraft] = useState(token);
@@ -9,10 +9,8 @@ export function AccessDialog({ token, onChange, onClose, onConnected }: Props) {
     onClose();
     onConnected();
   }
-  return <div className="dialog-backdrop" onMouseDown={event => {
-    if (event.target === event.currentTarget) onClose();
-  }}>
-    <section className="access-dialog" role="dialog" aria-modal="true" aria-labelledby="access-title">
+  return <Dialog.Root onBackdropClick={onClose}>
+    <Dialog.Content labelledBy="access-title">
       <div className="dialog-heading">
         <div className="dialog-symbol">◇</div>
         <Button variant="unstyled" type="button" className="icon-button" aria-label="Close" onClick={onClose}>×</Button>
@@ -34,6 +32,6 @@ export function AccessDialog({ token, onChange, onClose, onConnected }: Props) {
       </form>
       {token && <Button variant="unstyled" className="disconnect" type="button"
         onClick={() => { onChange(''); onClose(); }}>Disconnect current session</Button>}
-    </section>
-  </div>;
+    </Dialog.Content>
+  </Dialog.Root>;
 }
