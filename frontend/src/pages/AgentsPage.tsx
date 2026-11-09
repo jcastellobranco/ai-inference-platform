@@ -19,11 +19,11 @@ interface Props {
 }
 
 const examples = [
-  'Verifique se os contratos possuem cláusulas de notificação de incidentes.',
-  'Identifique possíveis lacunas de proteção de dados pessoais.',
-  'Confira os requisitos de confidencialidade e rescisão.',
+  'Check whether the contracts include incident notification clauses.',
+  'Identify potential gaps in personal data protection clauses.',
+  'Review confidentiality and termination requirements.',
 ];
-const DEFAULT_AUDIT_TASK = 'Comparar os contratos selecionados à política de referência nos quatro requisitos do checklist.';
+const DEFAULT_AUDIT_TASK = 'Compare selected contracts against the reference policy using the four baseline requirements.';
 
 export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: Props) {
   const [question, setQuestion] = useState('');
@@ -109,33 +109,33 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
       description="Screen indexed documents for contractual safeguards and review source-backed findings. Human validation is required." />
     <div className="playground-grid">
       <section className="panel query-panel">
-        <div className="panel-topline"><span className="eyebrow">NOVA AUDITORIA</span><span className="step-chip">VERSÃO DE TESTE</span></div>
-        <h3>Nova análise de contratos</h3>
-        <p className="muted">Compare seus contratos com uma política corporativa e descubra quais pontos merecem atenção antes da aprovação.</p>
+        <div className="panel-topline"><span className="eyebrow">NEW AUDIT</span><span className="step-chip">EARLY ACCESS</span></div>
+        <h3>New contract review</h3>
+        <p className="muted">Compare your contracts against a corporate policy and identify items that need attention before approval.</p>
         <form onSubmit={event => void submit(event)}>
           {workflow === 'compliance' && <>
             <div className="audit-step">
-              <h4>1. Qual política devemos seguir?</h4>
-              <p className="muted">Escolha o documento que estabelece as obrigações e regras de referência.</p>
+              <h4>1. Select your reference policy</h4>
+              <p className="muted">Choose the document that defines the requirements to check.</p>
               <Field.Root id="audit-policy">
-                <Field.Label>Política de referência</Field.Label>
+                <Field.Label>Reference policy</Field.Label>
                 <Select.Control value={policyId} onChange={event => {
                   const id = event.target.value;
                   setPolicyId(id);
                   setTargetIds(previous => previous.filter(value => value !== id));
                 }}>
-                  <Select.Option value="">Selecione uma política</Select.Option>
+                  <Select.Option value="">Select a policy</Select.Option>
                   {documents.map(doc => <Select.Option key={doc.document_id} value={doc.document_id}>{doc.source}</Select.Option>)}
                 </Select.Control>
               </Field.Root>
             </div>
             <div className="audit-step">
-              <h4>2. Quais documentos deseja analisar?</h4>
-              <p className="muted">Escolha de 1 a 4 contratos. Cada contrato será analisado separadamente.</p>
-              {loadingLibrary ? <p className="muted">Carregando documentos…</p> :
+              <h4>2. Select contracts to review</h4>
+              <p className="muted">Choose 1 to 4 contracts. Each will receive a separate review.</p>
+              {loadingLibrary ? <p className="muted">Loading documents…</p> :
                 libraryError ? <p role="alert" className="error-message">{libraryError}</p> :
                 documents.filter(doc => doc.document_id !== policyId).length === 0 ?
-                  <p className="muted">Adicione pelo menos dois documentos na Knowledge Base.</p> :
+                  <p className="muted">Add at least two documents to the Knowledge Base.</p> :
                   <div className="audit-document-picker">
                     {documents.filter(doc => doc.document_id !== policyId).map(doc =>
                       <div key={doc.document_id} className="audit-document-option">
@@ -144,45 +144,45 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
                             disabled={!targetIds.includes(doc.document_id) && targetIds.length >= 4}
                             onChange={event => setTargetIds(current => event.target.checked
                               ? [...current, doc.document_id] : current.filter(id => id !== doc.document_id))}/>
-                          <Field.Label><strong>{doc.source}</strong> · {doc.chunks} trechos</Field.Label>
+                          <Field.Label><strong>{doc.source}</strong> · {doc.chunks} indexed chunks</Field.Label>
                         </Field.Root>
                       </div>)}
                   </div>}
-              <p className="muted">{targetIds.length} de 4 documentos selecionados</p>
-              {documents.length === 0 && <p className="muted">Acesse Knowledge Base e envie a política e os contratos antes de iniciar.</p>}
+              <p className="muted">{targetIds.length} of 4 contracts selected</p>
+              {documents.length === 0 && <p className="muted">Upload your reference policy and contracts in the Knowledge Base before starting.</p>}
             </div>
             <div className="audit-step">
-              <h4>3. O que será verificado?</h4>
-              <p>Confidencialidade, proteção de dados pessoais, comunicação de incidentes e condições de rescisão.</p>
-              <p className="muted">O ATLAS localizará trechos relacionados e destacará possíveis lacunas. A conclusão requer revisão humana.</p>
+              <h4>3. What will be checked?</h4>
+              <p>Confidentiality, personal data protection, incident notification and termination clauses.</p>
+              <p className="muted">ATLAS identifies related excerpts and potential gaps. A human reviewer must confirm the findings.</p>
             </div>
           </>}
           <details className="eval-box">
-            <summary>Outras análises e configurações</summary>
+            <summary>Other analyses and settings</summary>
             <Field.Root id="agent-workflow">
-              <Field.Label>Tipo de análise</Field.Label>
+              <Field.Label>Analysis type</Field.Label>
               <Select.Control value={workflow}
                 onChange={event => setWorkflow(event.target.value as 'tools' | 'research' | 'compliance')}>
-                <Select.Option value="compliance">Auditoria de contratos</Select.Option>
-                <Select.Option value="research">Pesquisa nos documentos</Select.Option>
-                <Select.Option value="tools">Ferramentas de diagnóstico</Select.Option>
+                <Select.Option value="compliance">Contract compliance review</Select.Option>
+                <Select.Option value="research">Document research</Select.Option>
+                <Select.Option value="tools">Diagnostic tools</Select.Option>
               </Select.Control>
             </Field.Root>
           </details>
           <details className="eval-box">
-            <summary>Orientações adicionais (opcional)</summary>
+            <summary>Additional notes (optional)</summary>
             <Field.Root id="agent-question">
-              <Field.Label>Orientações para o relatório</Field.Label>
+              <Field.Label>Notes for the review</Field.Label>
               <Textarea rows={3} maxLength={2000} value={question}
                 onChange={event => setQuestion(event.target.value)}
-                placeholder="Ex.: dê atenção especial aos prazos de notificação de incidentes." />
+                placeholder="E.g., pay special attention to incident notification deadlines." />
             </Field.Root>
-            <p className="muted">Essas orientações são registradas para referência. O checklist desta versão ainda utiliza regras fixas.</p>
+            <p className="muted">These notes are saved with the request. This version still uses a fixed checklist.</p>
           </details>
           <Button className="wide-button" type="submit"
             disabled={!connected || submitting || (workflow !== 'compliance' && !question.trim()) ||
               (workflow === 'compliance' && !canAudit)}>
-            {submitting ? 'Iniciando análise…' : workflow === 'compliance' ? 'Analisar contratos ↗' : 'Executar análise ↗'}
+            {submitting ? 'Starting review…' : workflow === 'compliance' ? 'Review contracts ↗' : 'Run analysis ↗'}
           </Button>
         </form>
         {!connected && <p className="inline-hint">To run agents, <Button variant="unstyled" type="button" onClick={openAccess}>connect your JWT →</Button></p>}
@@ -193,59 +193,59 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
         </details>
         <details className="eval-box">
           <summary>How does this work? · Technical details</summary>
-          <p className="muted">O ATLAS registra a análise em uma fila PostgreSQL. O worker consulta pelo identificador apenas a política e os contratos selecionados, respeitando o tenant, e executa a triagem determinística. Outras modalidades continuam usando o serviço de agentes e MCP. Nenhum resultado é um parecer jurídico.</p>
+          <p className="muted">ATLAS queues the review in PostgreSQL. The worker retrieves only the selected policy and contracts by document ID within the authorized tenant, then runs a deterministic screening. Other modes use the agent service and MCP. This is not a legal opinion.</p>
         </details>
       </section>
       <section ref={resultsRef} className="panel results-panel" aria-live="polite">
-        <div className="panel-topline"><span className="eyebrow">RESULTADOS</span><span className="count-chip">REVISÃO DOCUMENTAL</span></div>
-        <h3>Relatório e pontos de atenção</h3>
-        {!jobId ? <EmptyState icon="✧" title="Nenhuma análise iniciada"
-          description="Escolha uma política e os contratos para receber um resumo das verificações." /> : <>
-          <div className="result-summary"><span>✧</span><strong>Análise</strong>{active && <StatusBadge status={active.status} />}</div>
-          <details><summary>Identificador técnico da execução</summary><code className="job-reference">{jobId}</code></details>
+        <div className="panel-topline"><span className="eyebrow">RESULTS</span><span className="count-chip">DOCUMENT REVIEW</span></div>
+        <h3>Report & items to review</h3>
+        {!jobId ? <EmptyState icon="✧" title="No review started"
+          description="Select a policy and contracts to see a clear review summary." /> : <>
+          <div className="result-summary"><span>✧</span><strong>Review</strong>{active && <StatusBadge status={active.status} />}</div>
+          <details><summary>Technical job ID</summary><code className="job-reference">{jobId}</code></details>
           {result ? <>
-            {result.compliance && result.compliance.contracts && <section className="audit-report" aria-label="Relatório de auditoria">
-              <span className="eyebrow">RESULTADO DA ANÁLISE</span>
-              <h3>Contratos analisados</h3>
-              <p className="muted">Política de referência: <strong>{result.compliance.policy?.source}</strong></p>
+            {result.compliance && result.compliance.contracts && <section className="audit-report" aria-label="Audit report">
+              <span className="eyebrow">REVIEW SUMMARY</span>
+              <h3>Contracts reviewed</h3>
+              <p className="muted">Reference policy: <strong>{result.compliance.policy?.source}</strong></p>
               <div className="metric-pills">
-                <span>Contratos: <b>{result.compliance.summary.contracts}</b></span>
-                <span>Pontos de atenção: <b>{result.compliance.summary.needs_attention}</b></span>
-                <span>Trechos para conferir: <b>{result.compliance.summary.evidence_to_review}</b></span>
+                <span>Contracts: <b>{result.compliance.summary.contracts}</b></span>
+                <span>Items needing attention: <b>{result.compliance.summary.needs_attention}</b></span>
+                <span>Excerpts to verify: <b>{result.compliance.summary.evidence_to_review}</b></span>
               </div>
               <p>{result.compliance.disclaimer}</p>
               {result.compliance.contracts.map(contract => <article className="audit-contract" key={contract.document_id}>
                 <h4>{contract.source}</h4>
                 <p>{contract.summary.needs_attention > 0
-                  ? `Foram encontrados ${contract.summary.needs_attention} possível(is) ponto(s) de atenção. Confira as obrigações antes de aprovar.`
+                  ? `${contract.summary.needs_attention} potential issue(s) need attention. Verify the obligations before approving this contract.`
                   : contract.summary.evidence_to_review > 0
-                    ? 'Foram encontrados trechos relacionados aos requisitos. Confirme se são suficientes.'
-                    : 'Não foi possível identificar requisitos aplicáveis de forma automática.'}</p>
+                    ? 'Relevant clauses were found. Confirm whether they fully satisfy the policy.'
+                    : 'No applicable requirements could be identified automatically. Manual review is needed.'}</p>
                 <div className="metric-pills">
-                  <span>Revisar possível lacuna: <b>{contract.summary.needs_attention}</b></span>
-                  <span>Verificar evidências: <b>{contract.summary.evidence_to_review}</b></span>
+                  <span>Potential gaps: <b>{contract.summary.needs_attention}</b></span>
+                  <span>Evidence to verify: <b>{contract.summary.evidence_to_review}</b></span>
                 </div>
                 {contract.checks.map(check => <div key={check.id} className={`audit-finding audit-finding--${check.status}`}>
                   <strong>{check.requirement}</strong>
-                  <span className="audit-status">{check.status === "needs_attention" ? "Precisa de atenção" : check.status === "evidence_to_review" ? "Trecho localizado" : "Validar política"}</span>
+                  <span className="audit-status">{check.status === "needs_attention" ? "Needs attention" : check.status === "evidence_to_review" ? "Excerpt found" : "Review policy"}</span>
                   <p>{check.message}</p>
                   <details>
-                    <summary>Ver trechos e justificativa</summary>
-                    <strong>Na política de referência</strong>
+                    <summary>View excerpts and rationale</summary>
+                    <strong>In the reference policy</strong>
                     {check.policy_evidence.length ? check.policy_evidence.map((e, i) =>
                       <p key={i} style={{ whiteSpace: 'pre-wrap' }}>{e.excerpt}<small> · {e.source} · {e.chunk_id}</small></p>)
-                      : <p>Nenhum trecho localizado.</p>}
-                    <strong>No contrato analisado</strong>
+                      : <p>No matching excerpt found.</p>}
+                    <strong>In the reviewed contract</strong>
                     {check.contract_evidence.length ? check.contract_evidence.map((e, i) =>
                       <p key={i} style={{ whiteSpace: 'pre-wrap' }}>{e.excerpt}<small> · {e.source} · {e.chunk_id}</small></p>)
-                      : <p>Nenhum trecho localizado.</p>}
+                      : <p>No matching excerpt found.</p>}
                   </details>
                 </div>)}
               </article>)}
             </section>}
             {result.compliance && !result.compliance.contracts && <section className="answer-panel">
-              <h3>Triagem anterior</h3>
-              <p className="muted">Esta execução foi feita antes da seleção de documentos. Inicie uma nova análise para comparar política e contratos separadamente.</p>
+              <h3>Previous screening</h3>
+              <p className="muted">This review ran before document selection was available. Start a new review to compare the policy and each contract separately.</p>
             </section>}
             {result.research && !result.compliance && <>
               <section className="answer-panel" aria-label="Research answer">
@@ -291,22 +291,22 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
                 <p>{step.tool} · {step.duration_ms.toFixed(1)} ms</p>
               </article>)}</div></details>
           </> : active?.status === 'failed' ?
-            <p className="error-message" role="alert">{active.error === 'MissingAuditDocument' ? 'Um dos documentos selecionados não está mais disponível. Atualize a biblioteca e inicie uma nova análise.' : active.error ? 'Não foi possível concluir a análise. Consulte os detalhes técnicos ou tente novamente.' : 'Não foi possível concluir a análise.'}</p> :
+            <p className="error-message" role="alert">{active.error === 'MissingAuditDocument' ? 'A selected document is no longer available. Refresh your Knowledge Base and start a new review.' : active.error ? 'The review could not be completed. Check technical details or try again.' : 'The review could not be completed.'}</p> :
             <p className="muted">The worker is processing this job. Status refreshes automatically while jobs are active.</p>}
         </>}
         <div className="results-note"><span>ⓘ</span><p>Evidence screening is not a legal compliance verdict. Review the full documents before making decisions.</p></div>
       </section>
     </div>
     <section className="panel jobs-panel" style={{ marginTop: 22 }}>
-      <div className="panel-topline"><span className="eyebrow">HISTÓRICO DE ANÁLISES</span>
-        <Button variant="unstyled" type="button" className="button-secondary" onClick={() => void refreshJobs()} disabled={!connected}>↻ Atualizar</Button></div>
+      <div className="panel-topline"><span className="eyebrow">REVIEW HISTORY</span>
+        <Button variant="unstyled" type="button" className="button-secondary" onClick={() => void refreshJobs()} disabled={!connected}>↻ Refresh</Button></div>
       {agentHistory.length === 0 ? <p className="muted">Completed agent runs will appear here during this session.</p> :
         <Table.Scroll><Table.Root className="jobs-table"><Table.Header><Table.Row>
           <Table.Head scope="col">TASK</Table.Head><Table.Head scope="col">STATUS</Table.Head><Table.Head scope="col">RESULT</Table.Head>
         </Table.Row></Table.Header><Table.Body>{agentHistory.map(job => <Table.Row key={job.id}>
           <Table.Cell className="job-prompt"><strong title={job.prompt}>{job.prompt}</strong><small>{job.id.slice(0, 8)}</small></Table.Cell>
           <Table.Cell><StatusBadge status={job.status}/></Table.Cell>
-          <Table.Cell><Button variant="unstyled" type="button" className="button-secondary" onClick={() => inspect(job.id)}>Ver relatório ↗</Button></Table.Cell>
+          <Table.Cell><Button variant="unstyled" type="button" className="button-secondary" onClick={() => inspect(job.id)}>View report ↗</Button></Table.Cell>
         </Table.Row>)}</Table.Body></Table.Root></Table.Scroll>}
     </section>
   </>;
