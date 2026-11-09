@@ -72,7 +72,7 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
       <section className="panel query-panel">
         <div className="panel-topline"><span className="eyebrow">WORKFLOW BUILDER</span><span className="step-chip">EXPERIMENTAL</span></div>
         <h3>Run an agent workflow</h3>
-        <p className="muted">Choose a local MCP tools run or a LangGraph research workflow grounded in documents indexed by RAG. Neither mode uses an LLM yet.</p>
+        <p className="muted">Choose a local MCP tools run or a LangGraph research workflow grounded in documents indexed by RAG. Research can generate a cited answer when an LLM provider is configured; otherwise it displays retrieved evidence.</p>
         <form onSubmit={event => void submit(event)}>
           <Field.Root id="agent-workflow">
             <Field.Label>Execution mode</Field.Label>
@@ -108,12 +108,33 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
           <div className="result-summary"><span>✧</span><strong>Agent job</strong>{active && <StatusBadge status={active.status} />}</div>
           <code className="job-reference">{jobId}</code>
           {result ? <>
-            {result.research && <section className="eval-box"><strong>Research findings</strong><p className="muted">Status: {result.research.status}</p>{result.research.findings.map((finding, index) => <article className="evidence-item" key={index}><strong>{finding.source}</strong><p>{finding.observation}</p><small>{finding.chunk_id ?? 'No chunk ID'}</small></article>)}</section>}
-            <div className="answer-panel">
+            {result.research && <>
+              <section className="answer-panel" aria-label="Research answer">
+                <span className="eyebrow">RESEARCH ANSWER</span>
+                {result.answer_status === 'generated' && result.answer
+                  ? <p style={{ whiteSpace: 'pre-wrap' }}>{result.answer}</p>
+                  : result.answer_status === 'insufficient_evidence'
+                    ? <p>Insufficient evidence to answer this question from the indexed documents.</p>
+                    : <p>Answer generation is not enabled. The retrieved excerpts below are evidence, not a synthesized answer.</p>}
+                {result.citations && result.citations.length > 0 && <div className="evidence-list">
+                  {result.citations.map(citation => <small key={citation.index}>[{citation.index}] {citation.source} · {citation.chunk_id}</small>)}
+                </div>}
+              </section>
+              <details className="eval-box">
+                <summary><strong>Retrieved evidence ({result.research.findings.length} chunks)</strong></summary>
+                <p className="muted">Research status: {result.research.status}. Excerpts are untrusted source material.</p>
+                {result.research.findings.map((finding, index) => <article className="evidence-item" key={index}>
+                  <strong>[{index + 1}] {finding.source}</strong>
+                  <p style={{ whiteSpace: 'pre-wrap' }}>{finding.observation}</p>
+                  <small>{finding.chunk_id ?? 'No chunk ID'}</small>
+                </article>)}
+              </details>
+            </>}
+            {!result.research && <div className="answer-panel">
               <span className="eyebrow">EXECUTION COMPLETE · {result.engine}</span>
               <p>{Object.entries(result.results).map(([id, output]) =>
                 `${id}: ${JSON.stringify(output)}`).join('\n')}</p>
-            </div>
+            </div>}
             <section className="eval-box" aria-label="Agent performance">
               <strong>Execution metrics</strong>
               <div className="metric-pills">
@@ -135,7 +156,7 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
             <p className="error-message" role="alert">{active.error || 'Agent execution failed'}</p> :
             <p className="muted">The worker is processing this job. Status refreshes automatically while jobs are active.</p>}
         </>}
-        <div className="results-note"><span>ⓘ</span><p>Runs are authenticated by ATLAS and stored in its PostgreSQL job queue. Research mode retrieves indexed document evidence using tenant-bound RAG, then runs the bounded MCP tool plan. It is not yet an LLM-generated answer.</p></div>
+        <div className="results-note"><span>ⓘ</span><p>Runs are authenticated by ATLAS and stored in its PostgreSQL job queue. Research mode retrieves indexed document evidence using tenant-bound RAG, then runs the bounded MCP tool plan. A cited LLM answer is available only when generation is configured; otherwise inspect the retrieved evidence.</p></div>
       </section>
     </div>
     <section className="panel jobs-panel" style={{ marginTop: 22 }}>
