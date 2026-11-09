@@ -42,7 +42,7 @@ export function OverviewPage({ jobs, documents, connected, navigate, openAccess 
     <div className="overview-grid">
       <section className="panel">
         <SectionHeader eyebrow="ACTIVITY" title="Recent executions"
-          action={<button className="text-button" onClick={() => navigate('jobs')}>View all ↗</button>}/>
+          action={<Button variant="unstyled" className="text-button" onClick={() => navigate('jobs')}>View all ↗</Button>}/>
         {!connected ? <EmptyState icon="◇" title="Connect your workspace"
           description="Provide a developer JWT to load your tenant-scoped runs."
           action={<Button onClick={openAccess}>Connect JWT</Button>} /> :
@@ -58,10 +58,10 @@ export function OverviewPage({ jobs, documents, connected, navigate, openAccess 
       </section>
       <section className="panel quick-panel">
         <SectionHeader eyebrow="QUICK START" title="Your next steps"/>
-        <button className="quick-action" onClick={() => navigate('documents')}><span className="quick-icon">01</span><span><strong>Add a document</strong><small>Index a PDF or text into your knowledge base.</small></span><span>↗</span></button>
-        <button className="quick-action" onClick={() => navigate('playground')}><span className="quick-icon">02</span><span><strong>Ask your knowledge</strong><small>Retrieve ranked source excerpts and citations.</small></span><span>↗</span></button>
-        <button className="quick-action" onClick={() => navigate('agents')}><span className="quick-icon">03</span><span><strong>Run a Multi-Agent workflow</strong><small>Submit an agent job and inspect MCP execution traces.</small></span><span>↗</span></button>
-        <button className="quick-action" onClick={() => navigate('jobs')}><span className="quick-icon">04</span><span><strong>Inspect a job</strong><small>Review status, answers and evaluation metrics.</small></span><span>↗</span></button>
+        <Button variant="unstyled" className="quick-action" onClick={() => navigate('documents')}><span className="quick-icon">01</span><span><strong>Add a document</strong><small>Index a PDF or text into your knowledge base.</small></span><span>↗</span></Button>
+        <Button variant="unstyled" className="quick-action" onClick={() => navigate('playground')}><span className="quick-icon">02</span><span><strong>Ask your knowledge</strong><small>Retrieve ranked source excerpts and citations.</small></span><span>↗</span></Button>
+        <Button variant="unstyled" className="quick-action" onClick={() => navigate('agents')}><span className="quick-icon">03</span><span><strong>Run a Multi-Agent workflow</strong><small>Submit an agent job and inspect MCP execution traces.</small></span><span>↗</span></Button>
+        <Button variant="unstyled" className="quick-action" onClick={() => navigate('jobs')}><span className="quick-icon">04</span><span><strong>Inspect a job</strong><small>Review status, answers and evaluation metrics.</small></span><span>↗</span></Button>
         <div className="architecture-note"><span>↗</span><div><strong>Under the hood</strong><p>JWT-authenticated API → durable worker → RAG / Multi-Agent / MCP → evaluation</p></div></div>
       </section>
     </div>
