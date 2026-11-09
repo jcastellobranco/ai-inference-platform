@@ -9,3 +9,5 @@ Inherits repository root AGENTS.md.
 - Prefer typed API contracts and accessible controls with labels and disabled/loading states.
 - Preserve backward compatibility for previously persisted job results that lack newer optional fields.
 - Validate with `npm test` and `npm run build` when available; report if not run.
+
+- Product UI language is **English**. Keep headings, labels, placeholders, buttons, help text, error states and human-readable reports in English. Uploaded document excerpts are source evidence and must retain their original language.
