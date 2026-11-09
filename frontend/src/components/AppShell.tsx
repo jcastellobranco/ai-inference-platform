@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Button } from './ui';
 
 export type View = 'overview' | 'documents' | 'playground' | 'agents' | 'jobs';
 const routes: Array<{ id: View; label: string; symbol: string; hint: string }> = [
@@ -21,20 +22,20 @@ export function AppShell({ view, onNavigate, connected, children, onOpenAccess }
       </div>
       <div className="nav-label">WORKSPACE</div>
       <nav aria-label="Primary navigation" className="main-nav">
-        {routes.map(route => <button key={route.id} type="button"
+        {routes.map(route => <Button variant="unstyled" key={route.id} type="button"
           className={`nav-link ${view === route.id ? 'active' : ''}`}
           aria-current={view === route.id ? 'page' : undefined}
           onClick={() => onNavigate(route.id)}>
           <span className="nav-symbol" aria-hidden="true">{route.symbol}</span>
           <span>{route.label}</span><span className="nav-hint">{route.hint}</span>
-        </button>)}
+        </Button>)}
       </nav>
       <div className="sidebar-bottom">
         <div className="sidebar-info"><span className="pulse" /> LOCAL WORKSPACE</div>
         <p>Developer environment</p>
-        <button className="sidebar-access" type="button" onClick={onOpenAccess}>
+        <Button variant="unstyled" className="sidebar-access" type="button" onClick={onOpenAccess}>
           <span>◇</span> {connected ? 'Manage access' : 'Connect your JWT'} <span>↗</span>
-        </button>
+        </Button>
         <p className="sidebar-caption">RAG · AGENTS · MCP · EVALUATION</p>
       </div>
     </aside>
@@ -43,10 +44,10 @@ export function AppShell({ view, onNavigate, connected, children, onOpenAccess }
         <div className="breadcrumbs"><span>Workspace</span><span>/</span>
           <strong>{routes.find(route => route.id === view)?.label}</strong>
         </div>
-        <button className="connection-chip" type="button" onClick={onOpenAccess}>
+        <Button variant="unstyled" className="connection-chip" type="button" onClick={onOpenAccess}>
           <span className={`connection-indicator ${connected ? 'connected' : ''}`} />
           {connected ? 'JWT connected' : 'Not connected'} <span>⌄</span>
-        </button>
+        </Button>
       </header>
       <main className="workspace-content">{children}</main>
       <footer className="app-footer">
