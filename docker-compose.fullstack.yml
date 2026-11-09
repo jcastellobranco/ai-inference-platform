@@ -40,6 +40,7 @@ services:
           psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/009_agent_workflow.sql
         fi
         psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/010_compliance_workflow.sql
+        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/011_compliance_documents.sql
     restart: "no"
   backend:
     build:
