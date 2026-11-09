@@ -58,7 +58,9 @@ async def generate_answer(question: str, evidence: list[dict], *, transport=None
     started = perf_counter()
     provider_calls = 1
     repair_attempted = False
-    messages = grounded_messages(question, evidence[:5])
+    # Citation indices must match the excerpts actually sent to the model.
+    selected_evidence = evidence[:5]
+    messages = grounded_messages(question, selected_evidence)
     async with httpx.AsyncClient(timeout=httpx.Timeout(40.0), transport=transport, trust_env=False) as client:
         response = await client.post(
             f"{url}/chat/completions",
@@ -72,7 +74,7 @@ async def generate_answer(question: str, evidence: list[dict], *, transport=None
     except (KeyError, IndexError, TypeError) as exc:
         raise ValueError("Unexpected generation provider response") from exc
     try:
-        citation_numbers = validate_citations(answer, len(evidence))
+        citation_numbers = validate_citations(answer, len(selected_evidence))
     except GroundingError:
         provider_calls += 1
         repair_attempted = True
@@ -98,7 +100,7 @@ async def generate_answer(question: str, evidence: list[dict], *, transport=None
             answer = repair_data["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError) as exc:
             raise GroundingError("Repair response had invalid format") from exc
-        citation_numbers = validate_citations(answer, len(evidence))
+        citation_numbers = validate_citations(answer, len(selected_evidence))
         first_usage = data.get("usage") or {}
         second_usage = repair_data.get("usage") or {}
         usage = {
