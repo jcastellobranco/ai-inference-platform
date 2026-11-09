@@ -36,7 +36,7 @@ export function JobForm({ disabled, isSubmitting, onSubmit }: Props) {
           onChange={event => setReference(event.target.value)}
           placeholder="Expected answer for quality evaluation" /></Field.Root>
       </>}
-      <Button variant="unstyled" type="submit" disabled={disabled || isSubmitting || !prompt.trim()}>
+      <Button type="submit" disabled={disabled || isSubmitting || !prompt.trim()}>
         {isSubmitting ? 'Submitting…' : 'Submit job'}
       </Button>
     </form>
