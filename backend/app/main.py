@@ -100,6 +100,8 @@ app.include_router(knowledge_router)
 @app.post("/v1/agent/jobs", status_code=201)
 def create_agent_job(body: AgentJobCreate, identity=Depends(principal)):
     """Tenant-bound durable agent job; only ATLAS worker calls the private agent."""
+    if body.workflow != "compliance" and (body.policy_document_id is not None or body.target_document_ids is not None):
+        raise HTTPException(422, "Document selection is only supported for compliance")
     if body.workflow != "compliance":
         if identity["tenant"] != os.getenv("AGENT_SERVICE_TENANT_ID", ""):
             raise HTTPException(403, "Agent service is not available for this tenant")
@@ -112,8 +114,6 @@ def create_agent_job(body: AgentJobCreate, identity=Depends(principal)):
             raise HTTPException(422, "Select one reference policy and 1 to 4 distinct contracts")
         if identity["tenant"] != os.getenv("RAG_SERVICE_TENANT_ID") or not os.getenv("RAG_SERVICE_URL") or not os.getenv("RAG_SERVICE_API_KEY"):
             raise HTTPException(503, "Tenant document service not configured")
-    elif body.policy_document_id is not None or body.target_document_ids is not None:
-        raise HTTPException(422, "Document selection is only supported for compliance")
     with tenant_session(identity["tenant"]) as db:
         job_id = db.execute(text("""
             INSERT INTO jobs(tenant_id, prompt, status, created_by, job_type, agent_workflow,
