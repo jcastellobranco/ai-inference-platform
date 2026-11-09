@@ -7,8 +7,9 @@ export interface AgentTraceStep {
 
 export interface AgentResult {
   engine: 'mcp-planned';
-  workflow?: 'tools' | 'research';
+  workflow?: 'tools' | 'research' | 'compliance';
   research?: { status: string; approved: boolean; findings: Array<{ source: string; observation: string; chunk_id?: string | null }> };
+  compliance?: { ruleset: string; scope: string; disclaimer: string; documents_retrieved: number; chunks_reviewed: number; summary: { requirements: number; evidence_candidates: number; needs_evidence_review: number }; checks: Array<{ id: string; requirement: string; status: 'evidence_candidate' | 'not_found_in_retrieval'; review_required: boolean; evidence: Array<{ source: string; chunk_id: string; excerpt: string }> }> };
   answer?: string;
   answer_status?: 'generated' | 'insufficient_evidence' | 'not_configured';
   citations?: Array<{ index: number; source: string; chunk_id: string }>;
