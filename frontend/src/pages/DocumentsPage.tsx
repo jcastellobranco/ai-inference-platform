@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react';
-import { Button, Field, Input, Tabs, Textarea } from '../components/ui';
+import { Button, Field, FileInput, Input, Tabs, Textarea } from '../components/ui';
 import { EmptyState } from '../components/EmptyState';
 import { SectionHeader } from '../components/SectionHeader';
 import { knowledgeApi } from '../lib/knowledgeApi';
@@ -69,7 +69,7 @@ export function DocumentsPage({ token, connected, documents, loading, busy, erro
         </Tabs.Root>
         <form onSubmit={event => void submit(event)}>
           {mode === 'pdf' ? <>
-            <input ref={fileRef} className="sr-only" id="pdf-file" type="file" accept=".pdf,application/pdf"
+            <FileInput ref={fileRef} className="sr-only" id="pdf-file" accept=".pdf,application/pdf"
               onChange={event => chooseFile(event.target.files?.[0])} />
             <Button variant="unstyled" type="button" className="dropzone" onClick={() => fileRef.current?.click()}
               onDragOver={event => event.preventDefault()}
