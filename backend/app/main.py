@@ -100,10 +100,11 @@ app.include_router(knowledge_router)
 @app.post("/v1/agent/jobs", status_code=201)
 def create_agent_job(body: AgentJobCreate, identity=Depends(principal)):
     """Tenant-bound durable agent job; only ATLAS worker calls the private agent."""
-    if identity["tenant"] != os.getenv("AGENT_SERVICE_TENANT_ID", ""):
-        raise HTTPException(403, "Agent service is not available for this tenant")
-    if not os.getenv("AGENT_SERVICE_URL") or len(os.getenv("ATLAS_AGENT_SERVICE_KEY", "")) < 32:
-        raise HTTPException(503, "Agent service not configured")
+    if body.workflow != "compliance":
+        if identity["tenant"] != os.getenv("AGENT_SERVICE_TENANT_ID", ""):
+            raise HTTPException(403, "Agent service is not available for this tenant")
+        if not os.getenv("AGENT_SERVICE_URL") or len(os.getenv("ATLAS_AGENT_SERVICE_KEY", "")) < 32:
+            raise HTTPException(503, "Agent service not configured")
     if body.workflow == "compliance":
         targets = body.target_document_ids or []
         if (body.policy_document_id is None or not 1 <= len(targets) <= 4
