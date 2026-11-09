@@ -29,9 +29,17 @@ services:
         psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/004_durable_jobs.sql
         psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/005_worker.sql
         psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/006_retry_state.sql
-        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/007_rag_jobs.sql
-        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/008_agent_jobs.sql
-        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/009_agent_workflow.sql
+        # Historical migrations 007-009 narrow CHECK constraints. Reapplying them
+        # against an upgraded database would reject already-persisted agent jobs.
+        # Do not edit historical SQL; detect the upgraded schema and skip them.
+        if [ "$(psql -h db -U app -d platform -v ON_ERROR_STOP=1 -Atc "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'jobs' AND column_name = 'agent_workflow')")" = "t" ]; then
+          echo "Existing agent workflow schema detected; skipping historical migrations 007-009"
+        else
+          psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/007_rag_jobs.sql
+          psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/008_agent_jobs.sql
+          psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/009_agent_workflow.sql
+        fi
+        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/010_compliance_workflow.sql
     restart: "no"
   backend:
     build:
