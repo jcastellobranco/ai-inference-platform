@@ -6,7 +6,6 @@ not a legal finding.
 """
 from __future__ import annotations
 
-import asyncio
 import json
 import os
 import re
@@ -67,6 +66,20 @@ def _evidence(document: dict, terms: tuple[str, ...]):
     return found[:3]
 
 
+NEGATION_CUES = (
+    "não será obrigado", "não haverá obrigação", "não tem obrigação",
+    "fica dispensad", "sem obrigação", "is not required",
+    "no obligation", "shall not be required", "não se responsabiliza",
+)
+
+
+def _possible_negation(evidence: list[dict]) -> bool:
+    # Conservative heuristic: flag potentially restrictive clauses for review.
+    # This is not semantic or legal interpretation.
+    return any(any(cue in item["excerpt"].casefold() for cue in NEGATION_CUES)
+               for item in evidence)
+
+
 def compare_documents(policy: dict, contracts: list[dict]):
     """Versioned lexical comparison; no inference that a clause is legally sufficient."""
     policy_checks = []
@@ -78,11 +91,14 @@ def compare_documents(policy: dict, contracts: list[dict]):
         for rule_id, label, terms, policy_evidence in policy_checks:
             contract_evidence = _evidence(document, terms)
             status = ("reference_not_found" if not policy_evidence else
-                      "evidence_to_review" if contract_evidence else "needs_attention")
+                      "needs_attention" if not contract_evidence or _possible_negation(contract_evidence)
+                      else "evidence_to_review")
             message = {
                 "reference_not_found": "Não foi localizado um trecho correspondente na política selecionada. Confirme se o requisito se aplica.",
                 "evidence_to_review": "Trecho relacionado localizado no contrato. Confira se atende integralmente à política.",
-                "needs_attention": "Não foi localizado trecho relacionado neste contrato. Revise o documento para confirmar a possível lacuna.",
+                "needs_attention": ("O trecho pode negar ou limitar uma obrigação. Confira seu efeito antes de aprovar."
+                                    if contract_evidence else
+                                    "Não foi localizado trecho relacionado neste contrato. Revise o documento para confirmar a possível lacuna."),
             }[status]
             checks.append({
                 "id": rule_id, "requirement": label, "status": status, "message": message,
