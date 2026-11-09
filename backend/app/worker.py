@@ -103,9 +103,10 @@ async def run_forever():
             await asyncio.to_thread(finish_job, sessions, job, result=output)
         except Exception as exc:
             from .generation import GroundingError
+            from .compliance_documents import MissingAuditDocument
             await asyncio.to_thread(finish_job, sessions, job,
                                     error=type(exc).__name__,
-                                    permanent=isinstance(exc, GroundingError))
+                                    permanent=isinstance(exc, (GroundingError, MissingAuditDocument)))
 
 if __name__ == "__main__":
     asyncio.run(run_forever())
