@@ -1,3 +1,4 @@
+import { Button, Field, Select, Textarea } from './ui';
 import { useState, type FormEvent } from 'react';
 import type { JobType } from '../types/jobs';
 
@@ -20,24 +21,24 @@ export function JobForm({ disabled, isSubmitting, onSubmit }: Props) {
   return <section aria-labelledby="create-heading">
     <h2 id="create-heading">Submit a job</h2>
     <form onSubmit={submit}>
-      <label htmlFor="job-type">Job type</label>
-      <select id="job-type" value={type} onChange={event => setType(event.target.value as JobType)}>
-        <option value="inference">Inference demo</option>
-        <option value="rag">Document question (RAG)</option>
-      </select>
-      <label htmlFor="job-prompt">{type === 'rag' ? 'Question' : 'Prompt'}</label>
-      <textarea id="job-prompt" value={prompt} maxLength={type === 'rag' ? 2000 : 8000}
+      <Field.Root id="job-type"><Field.Label>Job type</Field.Label>
+      <Select.Control value={type} onChange={event => setType(event.target.value as JobType)}>
+        <Select.Option value="inference">Inference demo</Select.Option>
+        <Select.Option value="rag">Document question (RAG)</Select.Option>
+      </Select.Control></Field.Root>
+      <Field.Root id="job-prompt"><Field.Label>{type === 'rag' ? 'Question' : 'Prompt'}</Field.Label>
+      <Textarea value={prompt} maxLength={type === 'rag' ? 2000 : 8000}
         onChange={event => setPrompt(event.target.value)}
-        placeholder={type === 'rag' ? 'Ask a question about indexed documents' : 'Enter a prompt'} />
+        placeholder={type === 'rag' ? 'Ask a question about indexed documents' : 'Enter a prompt'} /></Field.Root>
       {type === 'rag' && <>
-        <label htmlFor="reference-answer">Reference answer (optional — enables evaluation)</label>
-        <textarea id="reference-answer" value={reference} maxLength={16000}
+        <Field.Root id="reference-answer"><Field.Label>Reference answer (optional — enables evaluation)</Field.Label>
+        <Textarea value={reference} maxLength={16000}
           onChange={event => setReference(event.target.value)}
-          placeholder="Expected answer for quality evaluation" />
+          placeholder="Expected answer for quality evaluation" /></Field.Root>
       </>}
-      <button type="submit" disabled={disabled || isSubmitting || !prompt.trim()}>
+      <Button variant="unstyled" type="submit" disabled={disabled || isSubmitting || !prompt.trim()}>
         {isSubmitting ? 'Submitting…' : 'Submit job'}
-      </button>
+      </Button>
     </form>
   </section>;
 }
