@@ -1,3 +1,4 @@
+import { Button, Field, Input } from './ui';
 interface Props {
   token: string;
   onTokenChange: (token: string) => void;
@@ -8,13 +9,13 @@ export function AccessTokenPanel({ token, onTokenChange, onLoad, isLoading }: Pr
   return <section aria-labelledby="access-heading">
     <h2 id="access-heading">Development access</h2>
     <p>Enter a short-lived JWT for local development. The token stays in page memory and is never saved.</p>
-    <label htmlFor="access-token">JWT access token</label>
+    
     <div className="inline-fields">
-      <input id="access-token" type="password" autoComplete="off" spellCheck={false}
-        value={token} onChange={event => onTokenChange(event.target.value)} placeholder="Paste a JWT" />
-      <button type="button" onClick={onLoad} disabled={!token.trim() || isLoading}>
+      <Field.Root id="access-token"><Field.Label>JWT access token</Field.Label><Input type="password" autoComplete="off" spellCheck={false}
+        value={token} onChange={event => onTokenChange(event.target.value)} placeholder="Paste a JWT" /></Field.Root>
+      <Button variant="unstyled" type="button" onClick={onLoad} disabled={!token.trim() || isLoading}>
         {isLoading ? 'Loading…' : 'Load jobs'}
-      </button>
+      </Button>
     </div>
   </section>;
 }
