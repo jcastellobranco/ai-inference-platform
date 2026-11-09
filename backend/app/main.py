@@ -24,7 +24,7 @@ class JobCreate(BaseModel):
 
 class AgentJobCreate(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
-    workflow: str = Field(default="tools", pattern="^(tools|research)$")
+    workflow: str = Field(default="tools", pattern="^(tools|research|compliance)$")
 
 
 class RagJobCreate(BaseModel):
