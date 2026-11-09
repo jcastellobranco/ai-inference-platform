@@ -9,6 +9,10 @@ export interface AgentResult {
   engine: 'mcp-planned';
   workflow?: 'tools' | 'research';
   research?: { status: string; approved: boolean; findings: Array<{ source: string; observation: string; chunk_id?: string | null }> };
+  answer?: string;
+  answer_status?: 'generated' | 'insufficient_evidence' | 'not_configured';
+  citations?: Array<{ index: number; source: string; chunk_id: string }>;
+  generation?: { model: string; usage?: { input_tokens?: number; output_tokens?: number }; telemetry?: { llm_ms: number; provider_calls: number } };
   status: 'completed' | 'insufficient_evidence';
   planner: 'offline' | 'llm';
   results: Record<string, Record<string, unknown>>;
