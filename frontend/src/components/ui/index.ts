@@ -5,3 +5,5 @@ export { Textarea } from './Textarea';
 export { Button } from './Button';
 export { Tabs } from './Tabs';
 export { Table } from './Table';
+export { FileInput } from './FileInput';
+export { Dialog } from './Dialog';
