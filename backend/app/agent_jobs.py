@@ -32,4 +32,28 @@ async def execute_agent(job: dict) -> str:
         body = response.json()
     if not isinstance(body, dict) or body.get("status") not in {"completed", "insufficient_evidence"}:
         raise ValueError("Invalid agent response")
+    if job.get("agent_workflow") == "research":
+        research = body.get("research")
+        findings = research.get("findings", []) if isinstance(research, dict) else []
+        if not isinstance(findings, list):
+            raise ValueError("Invalid research findings")
+        # Model generation is opt-in; preserve the raw evidence if it is disabled.
+        body["answer_status"] = "not_configured"
+        if research and research.get("approved") and findings and os.getenv("RAG_GENERATION_ENABLED", "false").lower() == "true":
+            from .generation import generate_answer
+            evidence = []
+            for finding in findings[:5]:
+                if not isinstance(finding, dict) or not all(isinstance(finding.get(k), str) for k in ("source", "observation", "chunk_id")):
+                    raise ValueError("Invalid research evidence")
+                evidence.append({"source": finding["source"], "text": finding["observation"], "chunk_id": finding["chunk_id"]})
+            generated = await generate_answer(job["prompt"], evidence)
+            body["answer"] = generated["answer"]
+            body["answer_status"] = "generated" if generated["citation_numbers"] else "insufficient_evidence"
+            body["citations"] = [
+                {"index": i, "source": evidence[i - 1]["source"], "chunk_id": evidence[i - 1]["chunk_id"]}
+                for i in generated["citation_numbers"]
+            ]
+            body["generation"] = {"model": generated["model"], "usage": generated["usage"], "telemetry": generated["telemetry"]}
+            body["llm_calls"] = body.get("llm_calls", 0) + generated["telemetry"]["provider_calls"]
+            body["duration_ms"] = body.get("duration_ms", 0) + generated["telemetry"]["llm_ms"]
     return json.dumps(body, ensure_ascii=False)
