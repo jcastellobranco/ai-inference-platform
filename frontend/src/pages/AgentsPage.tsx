@@ -36,6 +36,7 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
   const [jobId, setJobId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const resultsRef = useRef<HTMLElement | null>(null);
   const tokenRef = useRef(token);
   tokenRef.current = token;
 
@@ -73,6 +74,11 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
     !targetIds.includes(policyId) && !loadingLibrary && !libraryError);
   const active = jobs.find(job => job.id === jobId);
   const result = parseAgentResult(active?.result ?? null);
+  function inspect(id: string) {
+    setJobId(id);
+    resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   const agentHistory = jobs.filter(job => parseAgentResult(job.result) !== null ||
     (jobId !== null && job.id === jobId));
 
@@ -190,13 +196,13 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
           <p className="muted">O ATLAS registra a análise em uma fila PostgreSQL. O worker consulta pelo identificador apenas a política e os contratos selecionados, respeitando o tenant, e executa a triagem determinística. Outras modalidades continuam usando o serviço de agentes e MCP. Nenhum resultado é um parecer jurídico.</p>
         </details>
       </section>
-      <section className="panel results-panel" aria-live="polite">
+      <section ref={resultsRef} className="panel results-panel" aria-live="polite">
         <div className="panel-topline"><span className="eyebrow">RESULTADOS</span><span className="count-chip">REVISÃO DOCUMENTAL</span></div>
         <h3>Relatório e pontos de atenção</h3>
         {!jobId ? <EmptyState icon="✧" title="Nenhuma análise iniciada"
           description="Escolha uma política e os contratos para receber um resumo das verificações." /> : <>
           <div className="result-summary"><span>✧</span><strong>Análise</strong>{active && <StatusBadge status={active.status} />}</div>
-          <code className="job-reference">{jobId}</code>
+          <details><summary>Identificador técnico da execução</summary><code className="job-reference">{jobId}</code></details>
           {result ? <>
             {result.compliance && result.compliance.contracts && <section className="audit-report" aria-label="Relatório de auditoria">
               <span className="eyebrow">RESULTADO DA ANÁLISE</span>
@@ -285,22 +291,22 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
                 <p>{step.tool} · {step.duration_ms.toFixed(1)} ms</p>
               </article>)}</div></details>
           </> : active?.status === 'failed' ?
-            <p className="error-message" role="alert">{active.error || 'Agent execution failed'}</p> :
+            <p className="error-message" role="alert">{active.error === 'MissingAuditDocument' ? 'Um dos documentos selecionados não está mais disponível. Atualize a biblioteca e inicie uma nova análise.' : active.error ? 'Não foi possível concluir a análise. Consulte os detalhes técnicos ou tente novamente.' : 'Não foi possível concluir a análise.'}</p> :
             <p className="muted">The worker is processing this job. Status refreshes automatically while jobs are active.</p>}
         </>}
         <div className="results-note"><span>ⓘ</span><p>Evidence screening is not a legal compliance verdict. Review the full documents before making decisions.</p></div>
       </section>
     </div>
     <section className="panel jobs-panel" style={{ marginTop: 22 }}>
-      <div className="panel-topline"><span className="eyebrow">RECENT REVIEWS</span>
-        <Button variant="unstyled" type="button" className="button-secondary" onClick={() => void refreshJobs()} disabled={!connected}>↻ Refresh</Button></div>
+      <div className="panel-topline"><span className="eyebrow">HISTÓRICO DE ANÁLISES</span>
+        <Button variant="unstyled" type="button" className="button-secondary" onClick={() => void refreshJobs()} disabled={!connected}>↻ Atualizar</Button></div>
       {agentHistory.length === 0 ? <p className="muted">Completed agent runs will appear here during this session.</p> :
         <Table.Scroll><Table.Root className="jobs-table"><Table.Header><Table.Row>
           <Table.Head scope="col">TASK</Table.Head><Table.Head scope="col">STATUS</Table.Head><Table.Head scope="col">RESULT</Table.Head>
         </Table.Row></Table.Header><Table.Body>{agentHistory.map(job => <Table.Row key={job.id}>
           <Table.Cell className="job-prompt"><strong title={job.prompt}>{job.prompt}</strong><small>{job.id.slice(0, 8)}</small></Table.Cell>
           <Table.Cell><StatusBadge status={job.status}/></Table.Cell>
-          <Table.Cell><Button variant="unstyled" type="button" className="button-secondary" onClick={() => setJobId(job.id)}>Inspect ↗</Button></Table.Cell>
+          <Table.Cell><Button variant="unstyled" type="button" className="button-secondary" onClick={() => inspect(job.id)}>Ver relatório ↗</Button></Table.Cell>
         </Table.Row>)}</Table.Body></Table.Root></Table.Scroll>}
     </section>
   </>;
