@@ -13,7 +13,7 @@ export function AccessTokenPanel({ token, onTokenChange, onLoad, isLoading }: Pr
     <div className="inline-fields">
       <Field.Root id="access-token"><Field.Label>JWT access token</Field.Label><Input type="password" autoComplete="off" spellCheck={false}
         value={token} onChange={event => onTokenChange(event.target.value)} placeholder="Paste a JWT" /></Field.Root>
-      <Button variant="unstyled" type="button" onClick={onLoad} disabled={!token.trim() || isLoading}>
+      <Button type="button" onClick={onLoad} disabled={!token.trim() || isLoading}>
         {isLoading ? 'Loading…' : 'Load jobs'}
       </Button>
     </div>
