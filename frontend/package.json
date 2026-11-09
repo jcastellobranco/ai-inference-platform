@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check:ui": "node scripts/check-ui-primitives.mjs",
+    "check": "npm run check:ui && npm run test && npm run build"
   },
   "dependencies": {
     "react": "^19.0.0",
