@@ -67,7 +67,8 @@ def _evidence(document: dict, terms: tuple[str, ...]):
 
 
 NEGATION_CUES = (
-    "não será obrigado", "não haverá obrigação", "não tem obrigação",
+    "não será obrigado", "não haverá obrigação", "não há obrigação",
+    "não terá obrigação", "não tem obrigação",
     "fica dispensad", "sem obrigação", "is not required",
     "no obligation", "shall not be required", "não se responsabiliza",
 )
