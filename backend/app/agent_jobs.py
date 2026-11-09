@@ -26,17 +26,23 @@ async def execute_agent(job: dict) -> str:
         response = await client.post(
             f"{url}/internal/v1/execute",
             headers={"x-atlas-service-key": key},
-            json={"question": job["prompt"], "tenant_id": tenant, "planner": "offline", "workflow": job.get("agent_workflow", "tools")},
+            json={"question": job["prompt"], "tenant_id": tenant, "planner": "offline", "workflow": "research" if job.get("agent_workflow") == "compliance" else job.get("agent_workflow", "tools")},
         )
         response.raise_for_status()
         body = response.json()
     if not isinstance(body, dict) or body.get("status") not in {"completed", "insufficient_evidence"}:
         raise ValueError("Invalid agent response")
-    if job.get("agent_workflow") == "research":
+    if job.get("agent_workflow") in {"research", "compliance"}:
         research = body.get("research")
         findings = research.get("findings", []) if isinstance(research, dict) else []
         if not isinstance(findings, list):
             raise ValueError("Invalid research findings")
+        if job.get("agent_workflow") == "compliance":
+            from .compliance_audit import build_audit_report
+            body["workflow"] = "compliance"
+            body["compliance"] = build_audit_report(findings)
+            # A compliance screening is deliberately not a generated legal verdict.
+            return json.dumps(body, ensure_ascii=False)
         # Model generation is opt-in; preserve the raw evidence if it is disabled.
         body["answer_status"] = "not_configured"
         if research and research.get("approved") and findings and os.getenv("RAG_GENERATION_ENABLED", "false").lower() == "true":
