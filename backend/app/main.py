@@ -25,6 +25,8 @@ class JobCreate(BaseModel):
 class AgentJobCreate(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
     workflow: str = Field(default="tools", pattern="^(tools|research|compliance)$")
+    policy_document_id: UUID | None = None
+    target_document_ids: list[UUID] | None = Field(default=None, max_length=4)
 
 
 class RagJobCreate(BaseModel):
@@ -102,11 +104,23 @@ def create_agent_job(body: AgentJobCreate, identity=Depends(principal)):
         raise HTTPException(403, "Agent service is not available for this tenant")
     if not os.getenv("AGENT_SERVICE_URL") or len(os.getenv("ATLAS_AGENT_SERVICE_KEY", "")) < 32:
         raise HTTPException(503, "Agent service not configured")
+    if body.workflow == "compliance":
+        targets = body.target_document_ids or []
+        if (body.policy_document_id is None or not 1 <= len(targets) <= 4
+                or len(set(targets)) != len(targets) or body.policy_document_id in targets):
+            raise HTTPException(422, "Select one reference policy and 1 to 4 distinct contracts")
+        if identity["tenant"] != os.getenv("RAG_SERVICE_TENANT_ID") or not os.getenv("RAG_SERVICE_URL") or not os.getenv("RAG_SERVICE_API_KEY"):
+            raise HTTPException(503, "Tenant document service not configured")
+    elif body.policy_document_id is not None or body.target_document_ids is not None:
+        raise HTTPException(422, "Document selection is only supported for compliance")
     with tenant_session(identity["tenant"]) as db:
         job_id = db.execute(text("""
-            INSERT INTO jobs(tenant_id, prompt, status, created_by, job_type, agent_workflow)
-            VALUES (:tenant, :question, 'queued', :actor, 'agent', :workflow)
+            INSERT INTO jobs(tenant_id, prompt, status, created_by, job_type, agent_workflow,
+                             audit_policy_document_id, audit_target_document_ids)
+            VALUES (:tenant, :question, 'queued', :actor, 'agent', :workflow, :policy, :targets)
             RETURNING id
         """), {"tenant": identity["tenant"], "question": body.question,
-               "actor": identity["subject"], "workflow": body.workflow}).scalar_one()
+               "actor": identity["subject"], "workflow": body.workflow,
+               "policy": str(body.policy_document_id) if body.policy_document_id else None,
+               "targets": [str(value) for value in body.target_document_ids] if body.target_document_ids else None}).scalar_one()
         return {"id": job_id, "status": "queued", "job_type": "agent"}
