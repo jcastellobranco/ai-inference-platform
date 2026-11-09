@@ -25,6 +25,21 @@ const examples = [
 ];
 const DEFAULT_AUDIT_TASK = 'Compare selected contracts against the reference policy using the four baseline requirements.';
 
+
+/** Historical audit jobs may contain Portuguese messages saved before the UI language was standardized. */
+const legacyAuditMessages: Record<string, string> = {
+  'Não foi localizado um trecho correspondente na política selecionada. Confirme se o requisito se aplica.':
+    'No matching clause was found in the selected policy. Confirm whether this requirement applies.',
+  'Trecho relacionado localizado no contrato. Confira se atende integralmente à política.':
+    'A related clause was found in the contract. Verify whether it fully meets the reference policy.',
+  'O trecho pode negar ou limitar uma obrigação. Confira seu efeito antes de aprovar.':
+    'This clause may exclude or limit an obligation. Review its implications before approval.',
+  'Não foi localizado trecho relacionado neste contrato. Revise o documento para confirmar a possível lacuna.':
+    'No matching clause was found in this contract. Review the full document to confirm whether there is a gap.',
+};
+const legacyDisclaimer = 'Triagem documental automatizada. Termos semelhantes não comprovam atendimento contratual e termos ausentes não comprovam descumprimento. Revisão humana obrigatória.';
+const englishDisclaimer = 'Automated document screening. A matching term does not prove contractual compliance, and a missing term does not prove noncompliance. Human review is required.';
+
 export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: Props) {
   const [question, setQuestion] = useState('');
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
@@ -213,7 +228,7 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
                 <span>Items needing attention: <b>{result.compliance.summary.needs_attention}</b></span>
                 <span>Excerpts to verify: <b>{result.compliance.summary.evidence_to_review}</b></span>
               </div>
-              <p>{result.compliance.disclaimer}</p>
+              <p>{result.compliance.disclaimer === legacyDisclaimer ? englishDisclaimer : result.compliance.disclaimer}</p>
               {result.compliance.contracts.map(contract => <article className="audit-contract" key={contract.document_id}>
                 <h4>{contract.source}</h4>
                 <p>{contract.summary.needs_attention > 0
@@ -228,7 +243,7 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
                 {contract.checks.map(check => <div key={check.id} className={`audit-finding audit-finding--${check.status}`}>
                   <strong>{check.requirement}</strong>
                   <span className="audit-status">{check.status === "needs_attention" ? "Needs attention" : check.status === "evidence_to_review" ? "Excerpt found" : "Review policy"}</span>
-                  <p>{check.message}</p>
+                  <p>{legacyAuditMessages[check.message] ?? check.message}</p>
                   <details>
                     <summary>View excerpts and rationale</summary>
                     <strong>In the reference policy</strong>
