@@ -100,3 +100,19 @@ docker compose -f docker-compose.fullstack.yml -f docker-compose.integrated.yml 
 Submit a **new** Research run. Old persisted results remain unchanged. The UI displays the grounded answer with numbered source citations, and puts retrieved chunks in a collapsible evidence section. When generation is disabled it clearly says that no answer was generated and exposes the evidence. If evidence is insufficient, no answer is fabricated. Generation failures remain subject to existing worker retry behavior.
 
 Run the focused backend test: `pytest backend/tests/test_agent_generation.py` in an environment with backend dependencies installed. This change has not been validated by executing the Docker test suite.
+
+## Compliance Auditor MVP — supplier baseline v1
+
+**Business goal:** screen indexed supplier agreements for evidence of four baseline clauses: confidentiality, security incident notification, personal-data protection, and termination. This is a deterministic, human-in-the-loop **evidence checklist**, not a legal audit or compliance verdict.
+
+In the Multi-Agent page choose **Compliance Auditor · Supplier baseline** and submit a task. The authenticated `POST /v1/agent/jobs` accepts `{"question":"...","workflow":"compliance"}`. The job is persisted in the existing PostgreSQL queue; the worker calls the existing tenant-scoped LangGraph/RAG research path and evaluates up to five returned chunks against versioned checklist terms. The UI displays evidence candidates, missing-from-retrieval flags and source/chunk identifiers. Every check requires human review. No match is **not** proof of noncompliance; a match is **not** proof of compliance. Do not use this as an automated legal decision.
+
+The workflow uses the existing Research RAG adapter, so document ingestion and retrieval must be configured and the indexed corpus must contain relevant supplier documents. No model key is required for this conservative baseline. The underlying research MCP word-count step is retained for backwards compatibility, but is not the business outcome.
+
+After pulling, apply migration `010_compliance_workflow.sql` using the existing migration service and rebuild backend, worker and frontend:
+```bash
+docker compose -f docker-compose.fullstack.yml -f docker-compose.integrated.yml -f docker-compose.agents.yml up -d --build --force-recreate migrate backend worker frontend
+```
+Run `pytest backend/tests/test_compliance_audit.py` with backend dependencies installed. Docker integration, migrations and frontend build have **not** been executed by this change.
+
+**Limitations and next release:** the checklist is fixed, lexical and excerpt-scoped; no cross-document clause comparison, exhaustive coverage, calibrated relevance threshold, configurable policy upload, verified severity, workflow approvals, or downloadable compliance report yet. The next iteration should separate authoritative policy requirements from contracts, add structured extraction and document coverage, and produce reviewer-confirmed findings.
