@@ -15,7 +15,7 @@ export function AccessDialog({ token, onChange, onClose, onConnected }: Props) {
     <section className="access-dialog" role="dialog" aria-modal="true" aria-labelledby="access-title">
       <div className="dialog-heading">
         <div className="dialog-symbol">◇</div>
-        <button type="button" className="icon-button" aria-label="Close" onClick={onClose}>×</button>
+        <Button variant="unstyled" type="button" className="icon-button" aria-label="Close" onClick={onClose}>×</Button>
       </div>
       <span className="eyebrow">DEVELOPMENT CONNECTION</span>
       <h2 id="access-title">Connect your workspace</h2>
@@ -26,14 +26,14 @@ export function AccessDialog({ token, onChange, onClose, onConnected }: Props) {
           value={draft} onChange={event => setDraft(event.target.value)}
           placeholder="eyJhbGciOiJIUzI1NiIs..." rows={3} /></Field.Root>
         <div className="dialog-actions">
-          <button className="button-quiet" type="button" onClick={onClose}>Cancel</button>
+          <Button variant="unstyled" className="button-quiet" type="button" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={!draft.trim()}>
             Connect workspace <span>↗</span>
           </Button>
         </div>
       </form>
-      {token && <button className="disconnect" type="button"
-        onClick={() => { onChange(''); onClose(); }}>Disconnect current session</button>}
+      {token && <Button variant="unstyled" className="disconnect" type="button"
+        onClick={() => { onChange(''); onClose(); }}>Disconnect current session</Button>}
     </section>
   </div>;
 }
