@@ -32,7 +32,7 @@ export const jobsApi = {
     request<{ id: string; status: string }>('/v1/jobs', token, {
       method: 'POST', body: JSON.stringify({ prompt }),
     }),
-  createAgent: (token: string, question: string, workflow: 'tools' | 'research' = 'tools') =>
+  createAgent: (token: string, question: string, workflow: 'tools' | 'research' | 'compliance' = 'tools') =>
     request<{ id: string; status: string; job_type: 'agent' }>('/v1/agent/jobs', token, {
       method: 'POST', body: JSON.stringify({ question, workflow }),
     }),
