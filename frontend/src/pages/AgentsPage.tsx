@@ -25,7 +25,7 @@ const examples = [
 ];
 
 export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: Props) {
-  const [question, setQuestion] = useState('');
+  const [question, setQuestion] = useState('Review supplier documents for confidentiality, incident notification, personal data protection and termination requirements.');
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
   const [libraryError, setLibraryError] = useState<string | null>(null);
   const [loadingLibrary, setLoadingLibrary] = useState(false);
@@ -37,7 +37,7 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
   tokenRef.current = token;
 
   useEffect(() => {
-    setQuestion('');
+    setQuestion('Review supplier documents for confidentiality, incident notification, personal data protection and termination requirements.');
     setDocuments([]);
     setLibraryError(null);
     setWorkflow('compliance');
@@ -100,8 +100,8 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
             <Select.Control value={workflow}
               onChange={event => setWorkflow(event.target.value as 'tools' | 'research' | 'compliance')}>
               <Select.Option value="compliance">Compliance Auditor · Supplier baseline</Select.Option>
-              <Select.Option value="tools">MCP tools · deterministic</Select.Option>
-              <Select.Option value="research">Research · LangGraph + RAG + MCP</Select.Option>
+              <Select.Option value="tools">Developer tools · diagnostic</Select.Option>
+              <Select.Option value="research">Document research · cited answers</Select.Option>
             </Select.Control>
           </Field.Root>
           <Field.Root id="agent-question">
