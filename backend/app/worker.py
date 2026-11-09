@@ -36,7 +36,7 @@ def claim_job(sessions):
                 leased_until=now() + (:lease * interval '1 second'),
                 worker_id=:worker, lease_token=:token
             FROM candidate WHERE j.id=candidate.id
-            RETURNING j.id, j.tenant_id, j.prompt, j.attempts, j.lease_token, j.job_type, j.reference_answer, j.agent_workflow
+            RETURNING j.id, j.tenant_id, j.prompt, j.attempts, j.lease_token, j.job_type, j.reference_answer, j.agent_workflow, j.audit_policy_document_id, j.audit_target_document_ids
         """), {"max_attempts": MAX_ATTEMPTS, "lease": LEASE_SECONDS,
                "worker": WORKER_ID, "token": lease_token}).mappings().first()
         return dict(row) if row else None
@@ -91,8 +91,12 @@ async def run_forever():
                 from .rag_jobs import execute_rag
                 operation = execute_rag(job)
             elif job["job_type"] == "agent":
-                from .agent_jobs import execute_agent
-                operation = execute_agent(job)
+                if job["agent_workflow"] == "compliance" and job.get("audit_policy_document_id"):
+                    from .compliance_documents import execute_compliance
+                    operation = execute_compliance(job)
+                else:
+                    from .agent_jobs import execute_agent
+                    operation = execute_agent(job)
             else:
                 operation = infer(job["prompt"])
             output = await asyncio.wait_for(operation, timeout=LEASE_SECONDS - 5)
