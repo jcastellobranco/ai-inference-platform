@@ -95,11 +95,11 @@ def compare_documents(policy: dict, contracts: list[dict]):
                       "needs_attention" if not contract_evidence or _possible_negation(contract_evidence)
                       else "evidence_to_review")
             message = {
-                "reference_not_found": "Não foi localizado um trecho correspondente na política selecionada. Confirme se o requisito se aplica.",
-                "evidence_to_review": "Trecho relacionado localizado no contrato. Confira se atende integralmente à política.",
-                "needs_attention": ("O trecho pode negar ou limitar uma obrigação. Confira seu efeito antes de aprovar."
+                "reference_not_found": "No matching clause was found in the selected policy. Confirm whether this requirement applies.",
+                "evidence_to_review": "A related clause was found in the contract. Verify whether it fully meets the reference policy.",
+                "needs_attention": ("This clause may exclude or limit an obligation. Review its implications before approval."
                                     if contract_evidence else
-                                    "Não foi localizado trecho relacionado neste contrato. Revise o documento para confirmar a possível lacuna."),
+                                    "No matching clause was found in this contract. Review the full document to confirm whether there is a gap."),
             }[status]
             checks.append({
                 "id": rule_id, "requirement": label, "status": status, "message": message,
@@ -125,7 +125,7 @@ def compare_documents(policy: dict, contracts: list[dict]):
             "evidence_to_review": sum(c["summary"]["evidence_to_review"] for c in contract_reports),
             "reference_not_found": sum(c["summary"]["reference_not_found"] for c in contract_reports),
         },
-        "disclaimer": "Triagem documental automatizada. Termos semelhantes não comprovam atendimento contratual e termos ausentes não comprovam descumprimento. Revisão humana obrigatória.",
+        "disclaimer": "Automated document screening. A matching term does not prove contractual compliance, and a missing term does not prove noncompliance. Human review is required.",
     }
 
 
