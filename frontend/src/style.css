@@ -39,3 +39,32 @@ button.button-primary,.button-primary{background:#9ebaff;border:1px solid #9ebaf
 .quick-job-form > .ui-field{flex:1;min-width:0}
 .quick-job-form > .ui-field > .ui-input{width:100%}
 .access-dialog .ui-field .jwt-input{width:100%}
+
+/* Compliance Auditor: business-first experience. Diagnostic styles stay separate. */
+.audit-step{background:#17253a;border:1px solid #32445d;border-radius:12px;padding:18px;margin:14px 0;color:#e4ecfa}
+.audit-step h4{font-size:15px;margin:0 0 7px}
+.audit-step .ui-field{margin-top:10px}
+.audit-document-picker{display:grid;gap:8px;margin-top:12px;max-height:290px;overflow-y:auto}
+.audit-document-option{background:#0e192b;border:1px solid #32445d;padding:12px;border-radius:9px}
+.audit-document-option .ui-field{display:flex;align-items:center;gap:11px;margin:0}
+.panel .audit-document-option input[type="checkbox"]{width:18px;height:18px;padding:0;margin:0;flex-shrink:0;accent-color:#9ebaff}
+.panel .audit-document-option label{display:block;margin:0;font-size:12px;cursor:pointer;overflow-wrap:anywhere}
+.audit-report{margin:20px 0;background:#14243a;border:1px solid #385373;border-radius:12px;padding:20px;color:#e5edfc}
+.audit-report h3{font-size:21px;margin:9px 0}.audit-report>p{font-size:13px;white-space:normal}
+.audit-contract{background:#0d192b;border:1px solid #334a67;border-radius:12px;padding:17px;margin-top:17px}
+.audit-contract h4{overflow-wrap:anywhere;font-size:16px;margin:0 0 10px}
+.audit-contract>p{font-size:13px;color:#c5d3e8}
+.audit-finding{border:1px solid #334760;background:#17283e;border-radius:10px;padding:14px;margin-top:10px}
+.audit-finding strong{display:inline-block;font-size:13px;margin-right:8px}
+.audit-finding p{font-size:12px;color:#c9d6e8;margin:7px 0 12px;white-space:normal}
+.audit-status{display:inline-block;font-size:10px;font-weight:700;border-radius:20px;padding:4px 8px;background:#263d56;color:#b8d1ed}
+.audit-finding--needs_attention{border-left:3px solid #efb36d}
+.audit-finding--needs_attention .audit-status{background:#503a28;color:#ffd8a2}
+.audit-finding--evidence_to_review{border-left:3px solid #6bcfb1}
+.audit-finding--evidence_to_review .audit-status{background:#1c493f;color:#a3e8d3}
+.audit-finding--reference_not_found{border-left:3px solid #b9a5ee}
+.audit-finding details{margin-top:12px;border-top:1px solid #35485e;padding-top:12px}
+.audit-finding details summary{cursor:pointer;font-size:12px;color:#b5cefa}
+.audit-finding details p{white-space:pre-wrap;overflow-wrap:anywhere;background:#0a1627;border-radius:7px;padding:11px}
+.audit-finding details small{display:block;color:#8da3c3;margin-top:6px}
+@media(max-width:640px){.audit-report,.audit-step,.audit-contract{padding:14px}}
