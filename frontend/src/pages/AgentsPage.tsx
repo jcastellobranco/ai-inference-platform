@@ -17,14 +17,14 @@ interface Props {
 }
 
 const examples = [
-  'Count the words in this sentence',
+  'Verifique evidências de confidencialidade, proteção de dados, incidentes e rescisão nos documentos indexados',
   'Analyze this request using the available local tools',
   'Test the ATLAS agent execution pipeline',
 ];
 
 export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: Props) {
   const [question, setQuestion] = useState('');
-  const [workflow, setWorkflow] = useState<'tools' | 'research'>('tools');
+  const [workflow, setWorkflow] = useState<'tools' | 'research' | 'compliance'>('compliance');
   const [jobId, setJobId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +33,7 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
 
   useEffect(() => {
     setQuestion('');
-    setWorkflow('tools');
+    setWorkflow('compliance');
     setJobId(null);
     setError(null);
     setSubmitting(false);
@@ -72,12 +72,13 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
       <section className="panel query-panel">
         <div className="panel-topline"><span className="eyebrow">WORKFLOW BUILDER</span><span className="step-chip">EXPERIMENTAL</span></div>
         <h3>Run an agent workflow</h3>
-        <p className="muted">Choose a local MCP tools run or a LangGraph research workflow grounded in documents indexed by RAG. Research can generate a cited answer when an LLM provider is configured; otherwise it displays retrieved evidence.</p>
+        <p className="muted">Run a compliance screening against indexed documents, or use research and local MCP tools. Compliance findings are evidence candidates requiring human review. Research can generate a cited answer when an LLM provider is configured; otherwise it displays retrieved evidence.</p>
         <form onSubmit={event => void submit(event)}>
           <Field.Root id="agent-workflow">
             <Field.Label>Execution mode</Field.Label>
             <Select.Control value={workflow}
-              onChange={event => setWorkflow(event.target.value as 'tools' | 'research')}>
+              onChange={event => setWorkflow(event.target.value as 'tools' | 'research' | 'compliance')}>
+              <Select.Option value="compliance">Compliance Auditor · Supplier baseline</Select.Option>
               <Select.Option value="tools">MCP tools · deterministic</Select.Option>
               <Select.Option value="research">Research · LangGraph + RAG + MCP</Select.Option>
             </Select.Control>
@@ -108,7 +109,23 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
           <div className="result-summary"><span>✧</span><strong>Agent job</strong>{active && <StatusBadge status={active.status} />}</div>
           <code className="job-reference">{jobId}</code>
           {result ? <>
-            {result.research && <>
+            {result.compliance && <section className="answer-panel" aria-label="Compliance screening report">
+              <span className="eyebrow">COMPLIANCE SCREENING · {result.compliance.ruleset}</span>
+              <h4>Evidence checklist</h4>
+              <div className="metric-pills">
+                <span>Requirements: <b>{result.compliance.summary.requirements}</b></span>
+                <span>Evidence candidates: <b>{result.compliance.summary.evidence_candidates}</b></span>
+                <span>Not located: <b>{result.compliance.summary.needs_evidence_review}</b></span>
+              </div>
+              <p className="muted">{result.compliance.disclaimer}</p>
+              {result.compliance.checks.map(check => <details key={check.id} className="evidence-item">
+                <summary><strong>{check.requirement}</strong> · {check.status === 'evidence_candidate' ? 'Evidence candidate' : 'Not found in retrieved excerpts'} · Human review required</summary>
+                {check.evidence.map((item, index) => <p key={item.chunk_id + index}>
+                  <strong>{item.source}</strong> · {item.chunk_id}<span style={{ display: 'block', whiteSpace: 'pre-wrap' }}>{item.excerpt}</span>
+                </p>)}
+              </details>)}
+            </section>}
+            {result.research && !result.compliance && <>
               <section className="answer-panel" aria-label="Research answer">
                 <span className="eyebrow">RESEARCH ANSWER</span>
                 {result.answer_status === 'generated' && result.answer
@@ -130,7 +147,7 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
                 </article>)}
               </details>
             </>}
-            {!result.research && <div className="answer-panel">
+            {!result.research && !result.compliance && <div className="answer-panel">
               <span className="eyebrow">EXECUTION COMPLETE · {result.engine}</span>
               <p>{Object.entries(result.results).map(([id, output]) =>
                 `${id}: ${JSON.stringify(output)}`).join('\n')}</p>
