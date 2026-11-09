@@ -27,6 +27,8 @@ const examples = [
 export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: Props) {
   const [question, setQuestion] = useState('Review supplier documents for confidentiality, incident notification, personal data protection and termination requirements.');
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
+  const [policyId, setPolicyId] = useState('');
+  const [targetIds, setTargetIds] = useState<string[]>([]);
   const [libraryError, setLibraryError] = useState<string | null>(null);
   const [loadingLibrary, setLoadingLibrary] = useState(false);
   const [workflow, setWorkflow] = useState<'tools' | 'research' | 'compliance'>('compliance');
@@ -39,6 +41,8 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
   useEffect(() => {
     setQuestion('Review supplier documents for confidentiality, incident notification, personal data protection and termination requirements.');
     setDocuments([]);
+    setPolicyId('');
+    setTargetIds([]);
     setLibraryError(null);
     setWorkflow('compliance');
     setJobId(null);
@@ -51,7 +55,11 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
     let cancelled = false;
     setLoadingLibrary(true);
     void knowledgeApi.list(token).then(data => {
-      if (!cancelled) setDocuments(data.items);
+      if (!cancelled) {
+        setDocuments(data.items);
+        setPolicyId(current => data.items.some(item => item.document_id === current) ? current : '');
+        setTargetIds(current => current.filter(id => data.items.some(item => item.document_id === id)));
+      }
     }).catch(() => {
       if (!cancelled) setLibraryError('Unable to load indexed documents.');
     }).finally(() => {
@@ -60,6 +68,8 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
     return () => { cancelled = true; };
   }, [connected, token]);
 
+  const canAudit = Boolean(policyId && targetIds.length > 0 && targetIds.length <= 4 &&
+    !targetIds.includes(policyId) && !loadingLibrary && !libraryError);
   const active = jobs.find(job => job.id === jobId);
   const result = parseAgentResult(active?.result ?? null);
   const agentHistory = jobs.filter(job => parseAgentResult(job.result) !== null ||
@@ -68,12 +78,13 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = question.trim();
-    if (!connected || submitting || !trimmed || trimmed.length > 2000) return;
+    if (!connected || submitting || !trimmed || trimmed.length > 2000 || (workflow === "compliance" && !canAudit)) return;
     const submittedToken = token;
     setSubmitting(true);
     setError(null);
     try {
-      const created = await jobsApi.createAgent(submittedToken, trimmed, workflow);
+      const created = await jobsApi.createAgent(submittedToken, trimmed, workflow,
+        workflow === 'compliance' ? { policy_document_id: policyId, target_document_ids: targetIds } : undefined);
       if (tokenRef.current !== submittedToken) return;
       setJobId(created.id);
       await refreshJobs();
@@ -93,42 +104,76 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
       <section className="panel query-panel">
         <div className="panel-topline"><span className="eyebrow">NEW REVIEW</span><span className="step-chip">EARLY ACCESS</span></div>
         <h3>Review contractual requirements</h3>
-        <p className="muted">Check indexed documents for four contractual safeguards. Results are evidence candidates requiring human review.</p>
-        <div className="eval-box">
-          <strong>1 · Knowledge Base</strong>
-          {loadingLibrary ? <p className="muted">Loading documents…</p>
-            : libraryError ? <p className="error-message" role="alert">{libraryError}</p>
-            : documents.length === 0 ? <p className="muted">No indexed documents. Add contracts or policies to Knowledge Base first.</p>
-            : <><p className="muted">{documents.length} indexed document(s) available.</p>
-              <details><summary>View indexed sources</summary>
-                <ul>{documents.map(doc => <li key={doc.document_id}>{doc.source} · {doc.chunks} chunks</li>)}</ul>
-              </details></>}
-          <p className="muted">This version searches all documents in the tenant Knowledge Base. Individual document selection is not yet supported.</p>
-        </div>
-        <div className="eval-box">
-          <strong>2 · Baseline requirements</strong>
-          <p className="muted">Confidentiality · Security incident notification · Personal data protection · Termination conditions</p>
-          <small>Fixed checklist v1 · Human review required.</small>
-        </div>
+        <p className="muted">Compare seus contratos com uma política corporativa e descubra quais pontos merecem atenção antes da aprovação.</p>
         <form onSubmit={event => void submit(event)}>
-          <Field.Root id="agent-workflow">
-            <Field.Label>Type of analysis</Field.Label>
-            <Select.Control value={workflow}
-              onChange={event => setWorkflow(event.target.value as 'tools' | 'research' | 'compliance')}>
-              <Select.Option value="compliance">Compliance Auditor · Supplier baseline</Select.Option>
-              <Select.Option value="tools">Developer tools · diagnostic</Select.Option>
-              <Select.Option value="research">Document research · cited answers</Select.Option>
-            </Select.Control>
-          </Field.Root>
-          <Field.Root id="agent-question">
-            <Field.Label>3 · What would you like to review?</Field.Label>
-            <Textarea rows={6} maxLength={2000} value={question}
-              onChange={event => setQuestion(event.target.value)}
-              placeholder="Example: Review supplier agreements for confidentiality, data protection, incident notification and termination clauses." required />
-          </Field.Root>
+          {workflow === 'compliance' && <>
+            <div className="eval-box">
+              <h4>1. Qual política devemos seguir?</h4>
+              <p className="muted">Escolha o documento que estabelece as obrigações e regras de referência.</p>
+              <Field.Root id="audit-policy">
+                <Field.Label>Política de referência</Field.Label>
+                <Select.Control value={policyId} onChange={event => {
+                  const id = event.target.value;
+                  setPolicyId(id);
+                  setTargetIds(previous => previous.filter(value => value !== id));
+                }}>
+                  <Select.Option value="">Selecione uma política</Select.Option>
+                  {documents.map(doc => <Select.Option key={doc.document_id} value={doc.document_id}>{doc.source}</Select.Option>)}
+                </Select.Control>
+              </Field.Root>
+            </div>
+            <div className="eval-box">
+              <h4>2. Quais documentos deseja analisar?</h4>
+              <p className="muted">Escolha de 1 a 4 contratos. Cada contrato será analisado separadamente.</p>
+              {loadingLibrary ? <p className="muted">Carregando documentos…</p> :
+                libraryError ? <p role="alert" className="error-message">{libraryError}</p> :
+                documents.filter(doc => doc.document_id !== policyId).length === 0 ?
+                  <p className="muted">Adicione pelo menos dois documentos na Knowledge Base.</p> :
+                  <div className="document-list">
+                    {documents.filter(doc => doc.document_id !== policyId).map(doc =>
+                      <label key={doc.document_id} className="document-row">
+                        <input type="checkbox" checked={targetIds.includes(doc.document_id)}
+                          disabled={!targetIds.includes(doc.document_id) && targetIds.length >= 4}
+                          onChange={event => setTargetIds(current => event.target.checked
+                            ? [...current, doc.document_id] : current.filter(id => id !== doc.document_id))}/>
+                        <span className="file-info"><strong>{doc.source}</strong><small>{doc.chunks} trechos indexados</small></span>
+                      </label>)}
+                  </div>}
+              <p className="muted">{targetIds.length} de 4 documentos selecionados</p>
+              {documents.length === 0 && <p className="muted">Acesse Knowledge Base e envie a política e os contratos antes de iniciar.</p>}
+            </div>
+            <div className="eval-box">
+              <h4>3. O que será verificado?</h4>
+              <p>Confidencialidade, proteção de dados pessoais, comunicação de incidentes e condições de rescisão.</p>
+              <p className="muted">O ATLAS localizará trechos relacionados e destacará possíveis lacunas. A conclusão requer revisão humana.</p>
+            </div>
+          </>}
+          <details className="eval-box">
+            <summary>Outras análises e configurações</summary>
+            <Field.Root id="agent-workflow">
+              <Field.Label>Tipo de análise</Field.Label>
+              <Select.Control value={workflow}
+                onChange={event => setWorkflow(event.target.value as 'tools' | 'research' | 'compliance')}>
+                <Select.Option value="compliance">Auditoria de contratos</Select.Option>
+                <Select.Option value="research">Pesquisa nos documentos</Select.Option>
+                <Select.Option value="tools">Ferramentas de diagnóstico</Select.Option>
+              </Select.Control>
+            </Field.Root>
+          </details>
+          <details className="eval-box">
+            <summary>Orientações adicionais (opcional)</summary>
+            <Field.Root id="agent-question">
+              <Field.Label>Orientações para o relatório</Field.Label>
+              <Textarea rows={3} maxLength={2000} value={question}
+                onChange={event => setQuestion(event.target.value)}
+                placeholder="Ex.: dê atenção especial aos prazos de notificação de incidentes." />
+            </Field.Root>
+            <p className="muted">No checklist atual, as regras são fixas; esse texto é registrado na solicitação e não altera os critérios.</p>
+          </details>
           <Button className="wide-button" type="submit"
-            disabled={!connected || submitting || !question.trim() || (workflow === "compliance" && (documents.length === 0 || loadingLibrary || Boolean(libraryError)))}>
-            {submitting ? 'Starting review…' : workflow === 'compliance' ? 'Start compliance screening ↗' : 'Run analysis ↗'}
+            disabled={!connected || submitting || !question.trim() ||
+              (workflow === 'compliance' && !canAudit)}>
+            {submitting ? 'Iniciando análise…' : workflow === 'compliance' ? 'Analisar contratos ↗' : 'Executar análise ↗'}
           </Button>
         </form>
         {!connected && <p className="inline-hint">To run agents, <Button variant="unstyled" type="button" onClick={openAccess}>connect your JWT →</Button></p>}
@@ -150,21 +195,47 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
           <div className="result-summary"><span>✧</span><strong>Review job</strong>{active && <StatusBadge status={active.status} />}</div>
           <code className="job-reference">{jobId}</code>
           {result ? <>
-            {result.compliance && <section className="answer-panel" aria-label="Compliance screening report">
-              <span className="eyebrow">COMPLIANCE SCREENING · {result.compliance.ruleset}</span>
-              <h4>Evidence checklist</h4>
+            {result.compliance && result.compliance.contracts && <section className="answer-panel" aria-label="Relatório de auditoria">
+              <span className="eyebrow">RESULTADO DA ANÁLISE</span>
+              <h3>Contratos analisados</h3>
+              <p className="muted">Política de referência: <strong>{result.compliance.policy?.source}</strong></p>
               <div className="metric-pills">
-                <span>Requirements: <b>{result.compliance.summary.requirements}</b></span>
-                <span>Evidence candidates: <b>{result.compliance.summary.evidence_candidates}</b></span>
-                <span>Not located: <b>{result.compliance.summary.needs_evidence_review}</b></span>
+                <span>Contratos: <b>{result.compliance.summary.contracts}</b></span>
+                <span>Pontos de atenção: <b>{result.compliance.summary.needs_attention}</b></span>
+                <span>Trechos para conferir: <b>{result.compliance.summary.evidence_to_review}</b></span>
               </div>
-              <p className="muted">{result.compliance.disclaimer}</p>
-              {result.compliance.checks.map(check => <details key={check.id} className="evidence-item">
-                <summary><strong>{check.requirement}</strong> · {check.status === 'evidence_candidate' ? 'Evidence candidate' : 'Not found in retrieved excerpts'} · Human review required</summary>
-                {check.evidence.map((item, index) => <p key={item.chunk_id + index}>
-                  <strong>{item.source}</strong> · {item.chunk_id}<span style={{ display: 'block', whiteSpace: 'pre-wrap' }}>{item.excerpt}</span>
-                </p>)}
-              </details>)}
+              <p>{result.compliance.disclaimer}</p>
+              {result.compliance.contracts.map(contract => <article className="eval-box" key={contract.document_id}>
+                <h4>{contract.source}</h4>
+                <p>{contract.summary.needs_attention > 0
+                  ? `Foram encontrados ${contract.summary.needs_attention} possível(is) ponto(s) de atenção. Confira as obrigações antes de aprovar.`
+                  : contract.summary.evidence_to_review > 0
+                    ? 'Foram encontrados trechos relacionados aos requisitos. Confirme se são suficientes.'
+                    : 'Não foi possível identificar requisitos aplicáveis de forma automática.'}</p>
+                <div className="metric-pills">
+                  <span>Revisar possível lacuna: <b>{contract.summary.needs_attention}</b></span>
+                  <span>Verificar evidências: <b>{contract.summary.evidence_to_review}</b></span>
+                </div>
+                {contract.checks.map(check => <div key={check.id} className="evidence-item">
+                  <strong>{check.requirement}</strong>
+                  <p>{check.message}</p>
+                  <details>
+                    <summary>Ver trechos e justificativa</summary>
+                    <strong>Na política de referência</strong>
+                    {check.policy_evidence.length ? check.policy_evidence.map((e, i) =>
+                      <p key={i} style={{ whiteSpace: 'pre-wrap' }}>{e.excerpt}<small> · {e.source} · {e.chunk_id}</small></p>)
+                      : <p>Nenhum trecho localizado.</p>}
+                    <strong>No contrato analisado</strong>
+                    {check.contract_evidence.length ? check.contract_evidence.map((e, i) =>
+                      <p key={i} style={{ whiteSpace: 'pre-wrap' }}>{e.excerpt}<small> · {e.source} · {e.chunk_id}</small></p>)
+                      : <p>Nenhum trecho localizado.</p>}
+                  </details>
+                </div>)}
+              </article>)}
+            </section>}
+            {result.compliance && !result.compliance.contracts && <section className="answer-panel">
+              <h3>Triagem anterior</h3>
+              <p className="muted">Esta execução foi feita antes da seleção de documentos. Inicie uma nova análise para comparar política e contratos separadamente.</p>
             </section>}
             {result.research && !result.compliance && <>
               <section className="answer-panel" aria-label="Research answer">
