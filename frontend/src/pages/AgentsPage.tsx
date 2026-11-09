@@ -108,7 +108,7 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
         <p className="muted">Compare seus contratos com uma política corporativa e descubra quais pontos merecem atenção antes da aprovação.</p>
         <form onSubmit={event => void submit(event)}>
           {workflow === 'compliance' && <>
-            <div className="eval-box">
+            <div className="audit-step">
               <h4>1. Qual política devemos seguir?</h4>
               <p className="muted">Escolha o documento que estabelece as obrigações e regras de referência.</p>
               <Field.Root id="audit-policy">
@@ -123,16 +123,16 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
                 </Select.Control>
               </Field.Root>
             </div>
-            <div className="eval-box">
+            <div className="audit-step">
               <h4>2. Quais documentos deseja analisar?</h4>
               <p className="muted">Escolha de 1 a 4 contratos. Cada contrato será analisado separadamente.</p>
               {loadingLibrary ? <p className="muted">Carregando documentos…</p> :
                 libraryError ? <p role="alert" className="error-message">{libraryError}</p> :
                 documents.filter(doc => doc.document_id !== policyId).length === 0 ?
                   <p className="muted">Adicione pelo menos dois documentos na Knowledge Base.</p> :
-                  <div className="document-list">
+                  <div className="audit-document-picker">
                     {documents.filter(doc => doc.document_id !== policyId).map(doc =>
-                      <div key={doc.document_id} className="document-row">
+                      <div key={doc.document_id} className="audit-document-option">
                         <Field.Root id={`audit-target-${doc.document_id}`}>
                           <Input type="checkbox" checked={targetIds.includes(doc.document_id)}
                             disabled={!targetIds.includes(doc.document_id) && targetIds.length >= 4}
@@ -145,7 +145,7 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
               <p className="muted">{targetIds.length} de 4 documentos selecionados</p>
               {documents.length === 0 && <p className="muted">Acesse Knowledge Base e envie a política e os contratos antes de iniciar.</p>}
             </div>
-            <div className="eval-box">
+            <div className="audit-step">
               <h4>3. O que será verificado?</h4>
               <p>Confidencialidade, proteção de dados pessoais, comunicação de incidentes e condições de rescisão.</p>
               <p className="muted">O ATLAS localizará trechos relacionados e destacará possíveis lacunas. A conclusão requer revisão humana.</p>
@@ -198,7 +198,7 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
           <div className="result-summary"><span>✧</span><strong>Análise</strong>{active && <StatusBadge status={active.status} />}</div>
           <code className="job-reference">{jobId}</code>
           {result ? <>
-            {result.compliance && result.compliance.contracts && <section className="answer-panel" aria-label="Relatório de auditoria">
+            {result.compliance && result.compliance.contracts && <section className="audit-report" aria-label="Relatório de auditoria">
               <span className="eyebrow">RESULTADO DA ANÁLISE</span>
               <h3>Contratos analisados</h3>
               <p className="muted">Política de referência: <strong>{result.compliance.policy?.source}</strong></p>
@@ -208,7 +208,7 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
                 <span>Trechos para conferir: <b>{result.compliance.summary.evidence_to_review}</b></span>
               </div>
               <p>{result.compliance.disclaimer}</p>
-              {result.compliance.contracts.map(contract => <article className="eval-box" key={contract.document_id}>
+              {result.compliance.contracts.map(contract => <article className="audit-contract" key={contract.document_id}>
                 <h4>{contract.source}</h4>
                 <p>{contract.summary.needs_attention > 0
                   ? `Foram encontrados ${contract.summary.needs_attention} possível(is) ponto(s) de atenção. Confira as obrigações antes de aprovar.`
@@ -219,8 +219,9 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
                   <span>Revisar possível lacuna: <b>{contract.summary.needs_attention}</b></span>
                   <span>Verificar evidências: <b>{contract.summary.evidence_to_review}</b></span>
                 </div>
-                {contract.checks.map(check => <div key={check.id} className="evidence-item">
+                {contract.checks.map(check => <div key={check.id} className={`audit-finding audit-finding--${check.status}`}>
                   <strong>{check.requirement}</strong>
+                  <span className="audit-status">{check.status === "needs_attention" ? "Precisa de atenção" : check.status === "evidence_to_review" ? "Trecho localizado" : "Validar política"}</span>
                   <p>{check.message}</p>
                   <details>
                     <summary>Ver trechos e justificativa</summary>
