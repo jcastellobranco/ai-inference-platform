@@ -75,7 +75,7 @@ export function PlaygroundPage({ token, connected, jobs, refreshJobs, openAccess
           </Tabs.List>
         </Tabs.Root>
         <form onSubmit={event => void submit(event)}>
-          {conversationContext && mode === 'rag' && <p className="inline-hint">Previous question: {conversationContext.slice(0, 160)} <button type="button" onClick={() => setConversationContext('')}>Clear context</button></p>}
+          {conversationContext && mode === 'rag' && <p className="inline-hint">Previous question: {conversationContext.slice(0, 160)} <Button variant="unstyled" type="button" onClick={() => setConversationContext('')}>Clear context</Button></p>}
           <Field.Root id="query-question"><Field.Label>Your question</Field.Label>
           <Textarea rows={6} maxLength={2000} value={question}
             onChange={event => setQuestion(event.target.value)}
@@ -89,12 +89,12 @@ export function PlaygroundPage({ token, connected, jobs, refreshJobs, openAccess
             {busy ? 'Processing…' : mode === 'retrieve' ? 'Search knowledge base' : 'Ask AI · queue job'} <span>↗</span>
           </Button>
         </form>
-        {!connected && <p className="inline-hint">To query your documents, <button onClick={openAccess}>connect your JWT →</button></p>}
+        {!connected && <p className="inline-hint">To query your documents, <Button variant="unstyled" onClick={openAccess}>connect your JWT →</Button></p>}
         {error && <p className="error-message" role="alert">{error}</p>}
         <div className="examples"><span className="eyebrow">TRY A PROMPT</span>
-          {examples.map(example => <button key={example} type="button" className="example-item" onClick={() => setQuestion(example)}>
+          {examples.map(example => <Button variant="unstyled" key={example} type="button" className="example-item" onClick={() => setQuestion(example)}>
             <span>{example}</span><span>↗</span>
-          </button>)}
+          </Button>)}
         </div>
       </section>
       <section className="panel results-panel">
