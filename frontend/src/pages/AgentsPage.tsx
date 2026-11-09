@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Table } from '../components/ui';
-import { Button, Field, Select, Textarea } from '../components/ui';
+import { Button, Field, Input, Select, Textarea } from '../components/ui';
 import { EmptyState } from '../components/EmptyState';
 import { SectionHeader } from '../components/SectionHeader';
 import { StatusBadge } from '../components/StatusBadge';
@@ -19,13 +19,14 @@ interface Props {
 }
 
 const examples = [
-  'Verifique evidências de confidencialidade, proteção de dados, incidentes e rescisão nos documentos indexados',
-  'Analyze this request using the available local tools',
-  'Test the ATLAS agent execution pipeline',
+  'Verifique se os contratos possuem cláusulas de notificação de incidentes.',
+  'Identifique possíveis lacunas de proteção de dados pessoais.',
+  'Confira os requisitos de confidencialidade e rescisão.',
 ];
+const DEFAULT_AUDIT_TASK = 'Comparar os contratos selecionados à política de referência nos quatro requisitos do checklist.';
 
 export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: Props) {
-  const [question, setQuestion] = useState('Review supplier documents for confidentiality, incident notification, personal data protection and termination requirements.');
+  const [question, setQuestion] = useState('');
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
   const [policyId, setPolicyId] = useState('');
   const [targetIds, setTargetIds] = useState<string[]>([]);
@@ -39,7 +40,7 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
   tokenRef.current = token;
 
   useEffect(() => {
-    setQuestion('Review supplier documents for confidentiality, incident notification, personal data protection and termination requirements.');
+    setQuestion('');
     setDocuments([]);
     setPolicyId('');
     setTargetIds([]);
@@ -77,8 +78,8 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const trimmed = question.trim();
-    if (!connected || submitting || !trimmed || trimmed.length > 2000 || (workflow === "compliance" && !canAudit)) return;
+    const trimmed = question.trim() || (workflow === 'compliance' ? DEFAULT_AUDIT_TASK : '');
+    if (!connected || submitting || !trimmed || trimmed.length > 2000 || (workflow === 'compliance' && !canAudit)) return;
     const submittedToken = token;
     setSubmitting(true);
     setError(null);
@@ -102,8 +103,8 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
       description="Screen indexed documents for contractual safeguards and review source-backed findings. Human validation is required." />
     <div className="playground-grid">
       <section className="panel query-panel">
-        <div className="panel-topline"><span className="eyebrow">NEW REVIEW</span><span className="step-chip">EARLY ACCESS</span></div>
-        <h3>Review contractual requirements</h3>
+        <div className="panel-topline"><span className="eyebrow">NOVA AUDITORIA</span><span className="step-chip">VERSÃO DE TESTE</span></div>
+        <h3>Nova análise de contratos</h3>
         <p className="muted">Compare seus contratos com uma política corporativa e descubra quais pontos merecem atenção antes da aprovação.</p>
         <form onSubmit={event => void submit(event)}>
           {workflow === 'compliance' && <>
@@ -131,13 +132,15 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
                   <p className="muted">Adicione pelo menos dois documentos na Knowledge Base.</p> :
                   <div className="document-list">
                     {documents.filter(doc => doc.document_id !== policyId).map(doc =>
-                      <label key={doc.document_id} className="document-row">
-                        <input type="checkbox" checked={targetIds.includes(doc.document_id)}
-                          disabled={!targetIds.includes(doc.document_id) && targetIds.length >= 4}
-                          onChange={event => setTargetIds(current => event.target.checked
-                            ? [...current, doc.document_id] : current.filter(id => id !== doc.document_id))}/>
-                        <span className="file-info"><strong>{doc.source}</strong><small>{doc.chunks} trechos indexados</small></span>
-                      </label>)}
+                      <div key={doc.document_id} className="document-row">
+                        <Field.Root id={`audit-target-${doc.document_id}`}>
+                          <Input type="checkbox" checked={targetIds.includes(doc.document_id)}
+                            disabled={!targetIds.includes(doc.document_id) && targetIds.length >= 4}
+                            onChange={event => setTargetIds(current => event.target.checked
+                              ? [...current, doc.document_id] : current.filter(id => id !== doc.document_id))}/>
+                          <Field.Label><strong>{doc.source}</strong> · {doc.chunks} trechos</Field.Label>
+                        </Field.Root>
+                      </div>)}
                   </div>}
               <p className="muted">{targetIds.length} de 4 documentos selecionados</p>
               {documents.length === 0 && <p className="muted">Acesse Knowledge Base e envie a política e os contratos antes de iniciar.</p>}
@@ -168,10 +171,10 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
                 onChange={event => setQuestion(event.target.value)}
                 placeholder="Ex.: dê atenção especial aos prazos de notificação de incidentes." />
             </Field.Root>
-            <p className="muted">No checklist atual, as regras são fixas; esse texto é registrado na solicitação e não altera os critérios.</p>
+            <p className="muted">Essas orientações são registradas para referência. O checklist desta versão ainda utiliza regras fixas.</p>
           </details>
           <Button className="wide-button" type="submit"
-            disabled={!connected || submitting || !question.trim() ||
+            disabled={!connected || submitting || (workflow !== 'compliance' && !question.trim()) ||
               (workflow === 'compliance' && !canAudit)}>
             {submitting ? 'Iniciando análise…' : workflow === 'compliance' ? 'Analisar contratos ↗' : 'Executar análise ↗'}
           </Button>
@@ -184,15 +187,15 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
         </details>
         <details className="eval-box">
           <summary>How does this work? · Technical details</summary>
-          <p className="muted">ATLAS queues a tenant-bound PostgreSQL job. The worker calls the research agent, which retrieves RAG evidence and returns a source-backed checklist. Execution traces remain available for troubleshooting.</p>
+          <p className="muted">O ATLAS registra a análise em uma fila PostgreSQL. O worker consulta pelo identificador apenas a política e os contratos selecionados, respeitando o tenant, e executa a triagem determinística. Outras modalidades continuam usando o serviço de agentes e MCP. Nenhum resultado é um parecer jurídico.</p>
         </details>
       </section>
       <section className="panel results-panel" aria-live="polite">
-        <div className="panel-topline"><span className="eyebrow">REVIEW RESULTS</span><span className="count-chip">AUDIT TRAIL</span></div>
-        <h3>Findings & evidence</h3>
-        {!jobId ? <EmptyState icon="✧" title="No review selected"
-          description="Start a compliance screening to see findings and source evidence." /> : <>
-          <div className="result-summary"><span>✧</span><strong>Review job</strong>{active && <StatusBadge status={active.status} />}</div>
+        <div className="panel-topline"><span className="eyebrow">RESULTADOS</span><span className="count-chip">REVISÃO DOCUMENTAL</span></div>
+        <h3>Relatório e pontos de atenção</h3>
+        {!jobId ? <EmptyState icon="✧" title="Nenhuma análise iniciada"
+          description="Escolha uma política e os contratos para receber um resumo das verificações." /> : <>
+          <div className="result-summary"><span>✧</span><strong>Análise</strong>{active && <StatusBadge status={active.status} />}</div>
           <code className="job-reference">{jobId}</code>
           {result ? <>
             {result.compliance && result.compliance.contracts && <section className="answer-panel" aria-label="Relatório de auditoria">
