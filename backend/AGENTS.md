@@ -11,3 +11,5 @@ Inherits repository root AGENTS.md.
 - Record stage timing and token usage without persisting secret keys or unnecessary raw source text.
 - For changes to jobs, security or retrieval, add positive, negative and cross-tenant tests.
 - Review `backend/migrations/` before editing schema. Never rewrite an applied migration; add a new migration.
+
+- User-facing compliance report messages and disclaimers must be in **English**. Keep original-language source excerpts and multilingual matching cues intact for document analysis.
