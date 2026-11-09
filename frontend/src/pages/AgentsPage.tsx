@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Table } from '../components/ui';
 import { Button, Field, Select, Textarea } from '../components/ui';
 import { EmptyState } from '../components/EmptyState';
 import { SectionHeader } from '../components/SectionHeader';
@@ -92,11 +93,11 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
             {submitting ? 'Submitting…' : 'Queue agent workflow ↗'}
           </Button>
         </form>
-        {!connected && <p className="inline-hint">To run agents, <button type="button" onClick={openAccess}>connect your JWT →</button></p>}
+        {!connected && <p className="inline-hint">To run agents, <Button variant="unstyled" type="button" onClick={openAccess}>connect your JWT →</Button></p>}
         {error && <p className="error-message" role="alert">{error}</p>}
         <div className="examples"><span className="eyebrow">EXAMPLE TASKS</span>
-          {examples.map(example => <button key={example} type="button" className="example-item"
-            onClick={() => setQuestion(example)}><span>{example}</span><span>↗</span></button>)}
+          {examples.map(example => <Button variant="unstyled" key={example} type="button" className="example-item"
+            onClick={() => setQuestion(example)}><span>{example}</span><span>↗</span></Button>)}
         </div>
       </section>
       <section className="panel results-panel" aria-live="polite">
@@ -139,15 +140,15 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
     </div>
     <section className="panel jobs-panel" style={{ marginTop: 22 }}>
       <div className="panel-topline"><span className="eyebrow">RECENT AGENT RUNS</span>
-        <button type="button" className="button-secondary" onClick={() => void refreshJobs()} disabled={!connected}>↻ Refresh</button></div>
+        <Button variant="unstyled" type="button" className="button-secondary" onClick={() => void refreshJobs()} disabled={!connected}>↻ Refresh</Button></div>
       {agentHistory.length === 0 ? <p className="muted">Completed agent runs will appear here during this session.</p> :
-        <div className="table-scroll"><table className="jobs-table"><thead><tr>
-          <th scope="col">TASK</th><th scope="col">STATUS</th><th scope="col">RESULT</th>
-        </tr></thead><tbody>{agentHistory.map(job => <tr key={job.id}>
-          <td className="job-prompt"><strong title={job.prompt}>{job.prompt}</strong><small>{job.id.slice(0, 8)}</small></td>
-          <td><StatusBadge status={job.status}/></td>
-          <td><button type="button" className="button-secondary" onClick={() => setJobId(job.id)}>Inspect ↗</button></td>
-        </tr>)}</tbody></table></div>}
+        <Table.Scroll><Table.Root className="jobs-table"><Table.Header><Table.Row>
+          <Table.Head scope="col">TASK</Table.Head><Table.Head scope="col">STATUS</Table.Head><Table.Head scope="col">RESULT</Table.Head>
+        </Table.Row></Table.Header><Table.Body>{agentHistory.map(job => <Table.Row key={job.id}>
+          <Table.Cell className="job-prompt"><strong title={job.prompt}>{job.prompt}</strong><small>{job.id.slice(0, 8)}</small></Table.Cell>
+          <Table.Cell><StatusBadge status={job.status}/></Table.Cell>
+          <Table.Cell><Button variant="unstyled" type="button" className="button-secondary" onClick={() => setJobId(job.id)}>Inspect ↗</Button></Table.Cell>
+        </Table.Row>)}</Table.Body></Table.Root></Table.Scroll>}
     </section>
   </>;
 }
