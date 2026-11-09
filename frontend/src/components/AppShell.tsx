@@ -6,7 +6,7 @@ const routes: Array<{ id: View; label: string; symbol: string; hint: string }> =
   { id: 'overview', label: 'Overview', symbol: '◫', hint: '01' },
   { id: 'documents', label: 'Knowledge base', symbol: '▤', hint: '02' },
   { id: 'playground', label: 'RAG playground', symbol: '✧', hint: '03' },
-  { id: 'agents', label: 'Multi-Agent', symbol: '✳', hint: '04' },
+  { id: 'agents', label: 'Compliance Auditor', symbol: '✳', hint: '04' },
   { id: 'jobs', label: 'Job runs', symbol: '◷', hint: '05' },
 ];
 interface Props {
