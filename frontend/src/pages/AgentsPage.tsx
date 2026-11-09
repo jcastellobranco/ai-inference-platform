@@ -91,9 +91,25 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
       description="Screen indexed documents for contractual safeguards and review source-backed findings. Human validation is required." />
     <div className="playground-grid">
       <section className="panel query-panel">
-        <div className="panel-topline"><span className="eyebrow">WORKFLOW BUILDER</span><span className="step-chip">EXPERIMENTAL</span></div>
-        <h3>Run an agent workflow</h3>
-        <p className="muted">Run a compliance screening against indexed documents, or use research and local MCP tools. Compliance findings are evidence candidates requiring human review. Research can generate a cited answer when an LLM provider is configured; otherwise it displays retrieved evidence.</p>
+        <div className="panel-topline"><span className="eyebrow">NEW REVIEW</span><span className="step-chip">EARLY ACCESS</span></div>
+        <h3>Review contractual requirements</h3>
+        <p className="muted">Check indexed documents for four contractual safeguards. Results are evidence candidates requiring human review.</p>
+        <div className="eval-box">
+          <strong>1 · Knowledge Base</strong>
+          {loadingLibrary ? <p className="muted">Loading documents…</p>
+            : libraryError ? <p className="error-message" role="alert">{libraryError}</p>
+            : documents.length === 0 ? <p className="muted">No indexed documents. Add contracts or policies to Knowledge Base first.</p>
+            : <><p className="muted">{documents.length} indexed document(s) available.</p>
+              <details><summary>View indexed sources</summary>
+                <ul>{documents.map(doc => <li key={doc.document_id}>{doc.source} · {doc.chunks} chunks</li>)}</ul>
+              </details></>}
+          <p className="muted">This version searches all documents in the tenant Knowledge Base. Individual document selection is not yet supported.</p>
+        </div>
+        <div className="eval-box">
+          <strong>2 · Baseline requirements</strong>
+          <p className="muted">Confidentiality · Security incident notification · Personal data protection · Termination conditions</p>
+          <small>Fixed checklist v1 · Human review required.</small>
+        </div>
         <form onSubmit={event => void submit(event)}>
           <Field.Root id="agent-workflow">
             <Field.Label>Type of analysis</Field.Label>
@@ -129,9 +145,9 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
       <section className="panel results-panel" aria-live="polite">
         <div className="panel-topline"><span className="eyebrow">REVIEW RESULTS</span><span className="count-chip">AUDIT TRAIL</span></div>
         <h3>Findings & evidence</h3>
-        {!jobId ? <EmptyState icon="✧" title="No agent execution selected"
-          description="Queue a workflow to see its status and MCP tool output." /> : <>
-          <div className="result-summary"><span>✧</span><strong>Agent job</strong>{active && <StatusBadge status={active.status} />}</div>
+        {!jobId ? <EmptyState icon="✧" title="No review selected"
+          description="Start a compliance screening to see findings and source evidence." /> : <>
+          <div className="result-summary"><span>✧</span><strong>Review job</strong>{active && <StatusBadge status={active.status} />}</div>
           <code className="job-reference">{jobId}</code>
           {result ? <>
             {result.compliance && <section className="answer-panel" aria-label="Compliance screening report">
@@ -177,8 +193,7 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
               <p>{Object.entries(result.results).map(([id, output]) =>
                 `${id}: ${JSON.stringify(output)}`).join('\n')}</p>
             </div>}
-            <section className="eval-box" aria-label="Agent performance">
-              <strong>Execution metrics</strong>
+            <details className="eval-box" aria-label="Agent performance"><summary>Execution metrics</summary>
               <div className="metric-pills">
                 <span>Duration: <b>{result.duration_ms.toFixed(0)} ms</b></span>
                 <span>Tools: <b>{result.tool_calls}</b></span>
@@ -186,7 +201,7 @@ export function AgentsPage({ token, connected, jobs, refreshJobs, openAccess }: 
                 <span>Planner: <b>{result.planner}</b></span>
               </div>
               <p className="muted">Duration is reported by the agent service; it excludes queue wait and frontend polling.</p>
-            </section>
+            </details>
             <details><summary>Technical execution trace</summary>
             <div className="evidence-list">{result.trace.map((step, index) =>
               <article className="evidence-item" key={`${step.step}-${index}`}>
