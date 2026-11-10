@@ -35,6 +35,9 @@ jobs:
         with:
           repository: jcastellobranco/mcp-tool-platform
           path: mcp-tool-platform
+      - name: Test read-only smoke checker offline
+        working-directory: ai-inference-platform
+        run: python3 -m unittest discover -s tests -p 'test_observability_smoke.py' -v
       - name: Check sibling observability assets
         run: |
           test -f llm-evaluation-observability/observability/prometheus.yml
