@@ -1,52 +1,75 @@
-# ATLAS self-service CLI — local-first platform contract
+# ATLAS CLI — Golden Path local-first v1
 
-Generate independent service repositories from the ATLAS Golden Path without Backstage, Kubernetes, AWS, or cloud credentials.
+ATLAS provides a developer self-service platform without Backstage, Kubernetes, AWS or cloud provisioning. Independent microservices are created with standard capabilities and a local developer workflow. This is a complete **local v1 Golden Path**, not a production security certification.
 
 ## Create
 
-```bash
-python3 scripts/atlas.py create-service billing-api \
-  --runtime fastapi --database postgres --cache redis \
-  --auth jwt --observability metrics
+    python3 scripts/atlas.py create-service payments-api \
+      --runtime fastapi --database postgres --cache redis \
+      --auth jwt --observability metrics
 
-python3 scripts/atlas.py create-service events-api \
-  --runtime node --auth jwt --observability metrics
+    python3 scripts/atlas.py create-service events-api \
+      --runtime node --auth jwt --observability metrics
 
-# Equivalent Make target:
-make atlas-create NAME=billing-api RUNTIME=fastapi DATABASE=postgres CACHE=redis AUTH=jwt OBSERVABILITY=metrics
-```
+    make atlas-create NAME=payments-api RUNTIME=fastapi DATABASE=postgres CACHE=redis AUTH=jwt OBSERVABILITY=metrics
 
-The default destination is a sibling folder next to `ai-inference-platform`. The command refuses to overwrite existing directories and does not start containers or contact cloud services. `python3 scripts/atlas.py inspect ../billing-api` prints its `atlas-service.json` manifest.
+Choose --destination to override the default sibling-directory location. Names must be lowercase kebab-case. Services are staged in a temporary directory and published by rename. Existing directories are not overwritten, and a temporary local lock prevents concurrent ATLAS CLI generations for the same name.
 
-## Generated artifacts
+## Run
 
-- Python/FastAPI or Node.js HTTP API; `GET /health/live`, `GET /health/ready`
-- Non-root Dockerfile and independent loopback-only Compose port binding
-- Starter test, GitHub Actions CI, .gitignore/.dockerignore, README
-- Optional JWT endpoint `GET /v1/me` with signature, issuer, audience, expiry, subject and tenant checks
-- Optional Prometheus `GET /metrics`
-- Optional `DATABASE_URL` and `REDIS_URL` environment placeholders
-- Machine-readable `atlas-service.json` describing selected capabilities
+    cd ../payments-api
+    make init
+    # Edit local .env and provide DATABASE_URL/REDIS_URL when selected.
+    make config
+    make up
+    curl http://127.0.0.1:8000/health/live
+    curl http://127.0.0.1:8000/health/ready
+    make logs
+    make down
 
-## JWT configuration
+make init creates an untracked .env and (for JWT-enabled services) an untracked random JWT secret only if missing. Configure external dependencies yourself: enabling --database postgres / --cache redis adds client packages and **real readiness probes**, but not running servers, database schemas, migrations, Redis pools, or credentials. Readiness returns HTTP 503 when a selected dependency cannot be reached. Liveness does not depend on external services.
 
-For `--auth jwt`, set a unique HS256 `JWT_SECRET` of 32+ characters in an untracked `.env`. Set `JWT_ISSUER` and `JWT_AUDIENCE` to the expected identity provider values. The endpoint fails closed when secrets are missing or invalid. The template **does not issue tokens**, provide a login server, implement tenant-level row policies, or support asymmetric/JWKS key rotation. Those are separate platform services/policies to add before real deployment.
+By default, Compose binds to the local loopback address only. To run multiple projects, set ATLAS_HOST_PORT=8001 (or another free port) in the generated .env.
 
-## Observability
+## Generated contracts
 
-`--observability metrics` adds a Prometheus counter and `/metrics` endpoint. This is intentionally lightweight: it does **not** include OpenTelemetry traces, distributed spans, structured access logs, cost metering, or a running Prometheus/Grafana stack. Do not expose metrics to the public internet without an appropriate gateway or network policy.
+| Capability | Python FastAPI | Node.js 22 |
+| --- | --- | --- |
+| Container | Python 3.12 non-root | Node 22 Alpine non-root |
+| Health | /health/live and /health/ready | /health/live and /health/ready |
+| API | Native /openapi.json | Starter /openapi.json |
+| JWT | PyJWT, HS256 | jose, HS256 |
+| Metrics | Prometheus client | prom-client |
+| Database | psycopg v3 if selected | pg if selected |
+| Cache | redis-py if selected | redis if selected |
+| Quality | pytest and CI | node:test and CI |
+| Local operations | Makefile, standalone Compose | Makefile, standalone Compose |
+| Discovery | atlas-service.json | atlas-service.json |
 
-## Dependencies and cost
+### Security and tenant boundaries
 
-`--database postgres` and `--cache redis` add connection variable placeholders, **not** database migrations, ORM models, Redis client pools, or new infrastructure. The generated Compose requires those variables and will not launch until configured. This preserves service independence and avoids unnecessary services or expenses.
+JWT-enabled templates expose authenticated GET /v1/me and validate signature, issuer, audience, expiration, subject and tenant_id. They read their HS256 secret from **/run/secrets/atlas_jwt_secret**, mounted as a Docker Compose file secret. Local bootstrap generates a 48-byte-class URL-safe random value under .secrets/atlas_jwt_secret, never stores it in code or interpolated environment variables, and never overwrites a user-defined secret.
 
-## Known limitations
+The default per-service local secrets are deliberately independent. To validate tokens from one trusted local issuer, configure the appropriate shared secret securely; production services should prefer approved OIDC/JWKS identity providers, key rotation and per-tenant authorization/RLS. The generator does **not** implement login, token issuance, tenant resource isolation or API route-level permission policies.
 
-- Generated readiness currently reflects process readiness only, not external dependency health.
-- JWT example is an HS256 demonstration and needs integration with an approved identity provider.
-- Generated Node Dockerfiles install dependencies at image build time, not with a pinned lockfile; add a lockfile for reproducible production builds.
-- Metrics instrumentation is a starter counter, not full HTTP latency/error monitoring.
-- No automatic registration in the ATLAS main Compose or production infrastructure.
-- Runtime and integration tests remain pending; only source-level CI checks have been added.
+### Observability
 
-The service template is a developer convenience, **not** a security certification or a production-ready IDP.
+Optional /metrics exposes request count by method, route template and status and a request duration histogram. Labels are deliberately bounded; no JWTs, prompts, payloads, tenants or document content are included in labels. This starter does not include OpenTelemetry traces or dashboards. Metrics should not be publicly exposed without appropriate network policies.
+
+## Catalog, inspect, validate
+
+    python3 scripts/atlas.py inspect ../payments-api
+    python3 scripts/atlas.py validate ../payments-api
+    python3 scripts/atlas.py catalog --root ..
+
+inspect prints the selected capabilities. validate performs **static** contract checks and returns non-zero on failure. catalog discovers sibling services using their manifests and shows valid/invalid status without a server, API registry or cloud dependencies.
+
+## Verification
+
+GitHub Actions verifies the generator contract and a matrix of generated minimal/full Python and Node services, dependency installation, Compose syntax, health tests and JWT behavior. The matrix does not provision PostgreSQL, Redis or cloud infrastructure. For manual local checks use make init, make config and make test after installing the generated dependencies.
+
+## Scope boundary
+
+This v1 is designed for independent local development, not certified production deployment. It does not create database tables, migrations, tenant policies, a secrets manager, an identity provider, complete distributed tracing, automatic registration in the central ATLAS Compose, or a service web portal. Node dependencies currently install without a committed lockfile; add one and use npm ci for reproducible production builds.
+
+Future optional milestones: OIDC/JWKS, tenant authorization/RLS, OpenTelemetry end-to-end, runtime service discovery, infrastructure provisioning, and a developer portal only when justified by actual team demand.
