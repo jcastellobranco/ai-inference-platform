@@ -29,9 +29,11 @@ services:
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_UNIFIED_ALERTING_ENABLED: "true"
     volumes:
       - ../llm-evaluation-observability/observability/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
       - ../llm-evaluation-observability/observability/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ../llm-evaluation-observability/observability/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting:ro
       - atlas_grafana_data:/var/lib/grafana
     ports:
       - "127.0.0.1:3000:3000"

@@ -4,6 +4,8 @@ on:
     paths:
       - 'docker-compose.observability.yml'
       - 'Makefile'
+      - 'scripts/atlas_alerts_smoke.py'
+      - 'tests/test_atlas_alerts_smoke.py'
       - '.github/workflows/observability-compose.yml'
   pull_request:
     paths:
@@ -37,12 +39,15 @@ jobs:
           path: mcp-tool-platform
       - name: Test read-only smoke checker offline
         working-directory: ai-inference-platform
-        run: python3 -m unittest discover -s tests -p 'test_observability_smoke.py' -v
+        run: |
+          python3 -m unittest discover -s tests -p 'test_observability_smoke.py' -v
+          python3 -m unittest discover -s tests -p 'test_atlas_alerts_smoke.py' -v
       - name: Check sibling observability assets
         run: |
           test -f llm-evaluation-observability/observability/prometheus.yml
           test -f llm-evaluation-observability/observability/loki.yml
           test -f llm-evaluation-observability/observability/alloy.alloy
+          test -f llm-evaluation-observability/observability/grafana/provisioning/alerting/atlas-alerts.yml
           test -f llm-evaluation-observability/observability/grafana/provisioning/dashboards/json/atlas-container-logs.json
           test -f rag-document-intelligence/src/rag_intelligence/metrics.py
       - name: Generate local test-only secrets and validate all Compose overlays
