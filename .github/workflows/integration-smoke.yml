@@ -1,0 +1,54 @@
+name: ATLAS integrated smoke
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'docker-compose.*.yml'
+      - '.github/workflows/integration-smoke.yml'
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout inference platform
+        uses: actions/checkout@v4
+        with:
+          path: ai-inference-platform
+      - name: Checkout RAG service
+        uses: actions/checkout@v4
+        with:
+          repository: jcastellobranco/rag-document-intelligence
+          token: ${{ secrets.ATLAS_CROSS_REPO_TOKEN }}
+          path: rag-document-intelligence
+      - name: Checkout evaluation service
+        uses: actions/checkout@v4
+        with:
+          repository: jcastellobranco/llm-evaluation-observability
+          token: ${{ secrets.ATLAS_CROSS_REPO_TOKEN }}
+          path: llm-evaluation-observability
+      - name: Generate ephemeral integration secrets
+        working-directory: ai-inference-platform
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "JWT_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          echo "RAG_DB_OWNER_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
+          echo "RAG_API_KEY=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          echo "EVAL_API_KEY=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+      - name: Start integrated services
+        working-directory: ai-inference-platform
+        run: docker compose -f docker-compose.fullstack.yml -f docker-compose.integrated.yml up -d --build
+      - name: Run RAG to worker to evaluation smoke
+        working-directory: ai-inference-platform
+        run: docker compose -f docker-compose.fullstack.yml -f docker-compose.integrated.yml --profile smoke run --rm integration-smoke
+      - name: Capture diagnostics on failure
+        if: failure()
+        working-directory: ai-inference-platform
+        run: docker compose -f docker-compose.fullstack.yml -f docker-compose.integrated.yml logs --tail 200
+      - name: Stop services
+        if: always()
+        working-directory: ai-inference-platform
+        run: docker compose -f docker-compose.fullstack.yml -f docker-compose.integrated.yml down
