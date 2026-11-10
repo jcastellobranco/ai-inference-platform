@@ -11,7 +11,7 @@ async function call<T>(
     ...options,
     credentials: 'same-origin',
     headers: {
-      ...(document.cookie.match(/(?:^|; )atlas_csrf=([^;]*)/)?.[1] && !['GET','HEAD'].includes(options.method || 'GET') ? { 'X-CSRF-Token': decodeURIComponent(document.cookie.match(/(?:^|; )atlas_csrf=([^;]*)/)![1]) } : {}),
+      ...((typeof document !== 'undefined' ? document.cookie : '').match(/(?:^|; )atlas_csrf=([^;]*)/)?.[1] && !['GET','HEAD'].includes(options.method || 'GET') ? { 'X-CSRF-Token': decodeURIComponent((typeof document !== 'undefined' ? document.cookie : '').match(/(?:^|; )atlas_csrf=([^;]*)/)![1]) } : {}),
       ...(token !== 'browser-session' ? { Authorization: `Bearer ${token.trim()}` } : {}),
       ...options.headers,
     },
