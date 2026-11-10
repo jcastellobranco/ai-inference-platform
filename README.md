@@ -14,7 +14,15 @@ Reference portfolio platform for tenant-isolated, authenticated inference jobs, 
 - **Generation:** extractive by default; optional OpenAI-compatible chat-completions provider with numbered citations
 - **Tracing:** job-result stage timings for retrieval, generation and evaluation (not queue wait or UI polling)
 
-**Local-first policy:** AWS/Terraform is documentation-only and is not deployed. See [ATLAS local operating guide](docs/LOCAL_FIRST_ATLAS.md) for cost-free setup, optional Redis, repository boundaries, and later verification.\n\n## Prerequisites
+**Local-first policy:** AWS/Terraform is documentation-only and is not deployed. See [ATLAS local operating guide](docs/LOCAL_FIRST_ATLAS.md) for cost-free setup, optional Redis, repository boundaries, and later verification.\n\n## Developer golden paths (local, no cloud)
+
+Use `make init` to create untracked local configuration and a Redis secret without overwriting existing values; then edit `.env` and run `make doctor`. Start with `make up`, `make up-rag`, `make up-agent`, or `make up-redis` depending on the services you need. Use `make config-redis` to validate the full Compose configuration without starting containers.
+
+Create a new independent FastAPI service skeleton with `python3 scripts/scaffold_service.py my-new-service`. This is a starter, not a production authentication or observability template.
+
+See [Developer Experience and Golden Paths](docs/DEVELOPER_EXPERIENCE.md).
+
+## Prerequisites
 
 - Git, Docker Engine and Docker Compose plugin
 - Enough disk and RAM for PostgreSQL, pgvector and the sentence-transformers embedding model
