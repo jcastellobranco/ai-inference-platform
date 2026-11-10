@@ -6,10 +6,13 @@ RAG := $(BASE) -f docker-compose.integrated.yml
 AGENT := $(RAG) -f docker-compose.agents.yml
 REDIS := $(AGENT) -f docker-compose.redis.yml
 
-.PHONY: help doctor init config-minimal config-rag config-agent config-redis up up-rag up-agent up-redis ps logs down smoke-rag smoke-agent
+.PHONY: help doctor init config-minimal config-rag config-agent config-redis up up-rag up-agent up-redis ps logs down smoke-rag smoke-agent new-service
 
 help:
 	@printf '%s\n' 'ATLAS local developer commands:' '  make doctor       - check local prerequisites (no containers)' '  make init         - create .env and untracked local Redis secret' '  make config-*     - validate Compose without starting containers' '  make up           - start minimal stack' '  make up-rag       - add RAG and evaluation' '  make up-agent     - add agent and MCP' '  make up-redis     - add Redis cache and quotas' '  make ps           - inspect minimal stack' '  make logs         - tail minimal stack logs' '  make down         - stop minimal stack (preserves volumes)' '  make smoke-rag    - run RAG smoke profile' '  make smoke-agent  - run agent smoke profile'
+new-service:
+	@test -n "$(NAME)" || (echo "Usage: make new-service NAME=my-api RUNTIME=fastapi [POSTGRES=1] [REDIS=1]" && exit 2)
+	@python3 scripts/scaffold_service.py "$(NAME)" --runtime "$(or $(RUNTIME),fastapi)" $(if $(filter 1,$(POSTGRES)),--postgres,) $(if $(filter 1,$(REDIS)),--redis,)
 doctor:
 	@python3 scripts/atlas_dev.py doctor
 init:
