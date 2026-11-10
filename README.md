@@ -14,7 +14,7 @@ Reference portfolio platform for tenant-isolated, authenticated inference jobs, 
 - **Generation:** extractive by default; optional OpenAI-compatible chat-completions provider with numbered citations
 - **Tracing:** job-result stage timings for retrieval, generation and evaluation (not queue wait or UI polling)
 
-## Prerequisites
+**Local-first policy:** AWS/Terraform is documentation-only and is not deployed. See [ATLAS local operating guide](docs/LOCAL_FIRST_ATLAS.md) for cost-free setup, optional Redis, repository boundaries, and later verification.\n\n## Prerequisites
 
 - Git, Docker Engine and Docker Compose plugin
 - Enough disk and RAM for PostgreSQL, pgvector and the sentence-transformers embedding model
