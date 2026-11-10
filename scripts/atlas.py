@@ -77,7 +77,7 @@ def extend_node(target: Path, auth: bool, metrics: bool) -> None:
         dockerfile = target / "Dockerfile"
         dockerfile.write_text(dockerfile.read_text().replace(
             "COPY --chown=node:node src/ ./src/",
-            "RUN npm install --omit=dev --no-audit --no-fund\\nCOPY --chown=node:node src/ ./src/"))
+            "RUN npm install --omit=dev --no-audit --no-fund\nCOPY --chown=node:node src/ ./src/"))
 
     source = ["import http from 'node:http';"]
     if auth:
