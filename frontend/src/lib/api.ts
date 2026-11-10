@@ -10,12 +10,14 @@ export class ApiError extends Error {
 async function request<T>(
   path: string, token: string, options: RequestInit = {}, signal?: AbortSignal,
 ): Promise<T> {
-  if (!token.trim()) throw new ApiError(401, 'A development access token is required.');
+
   const response = await fetch(BASE_URL + path, {
     ...options,
     signal,
+    credentials: 'same-origin',
     headers: {
-      Authorization: `Bearer ${token.trim()}`,
+      ...(document.cookie.match(/(?:^|; )atlas_csrf=([^;]*)/)?.[1] && !['GET','HEAD'].includes(options.method || 'GET') ? { 'X-CSRF-Token': decodeURIComponent(document.cookie.match(/(?:^|; )atlas_csrf=([^;]*)/)![1]) } : {}),
+      ...(token.trim() ? { Authorization: `Bearer ${token.trim()}` } : {}),
       ...(options.body ? { 'Content-Type': 'application/json' } : {}),
       ...options.headers,
     },
