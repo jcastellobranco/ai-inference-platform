@@ -28,6 +28,18 @@ class BrowserAuthContract(unittest.TestCase):
         self.assertIn("credentials: 'same-origin'", api)
         self.assertIn("X-CSRF-Token", api)
 
+    def test_unstyled_buttons_have_atlas_theme(self):
+        button = (ROOT / "frontend/src/components/ui/Button.tsx").read_text()
+        css = (ROOT / "frontend/src/style.css").read_text()
+        dialog = (ROOT / "frontend/src/components/AccessDialog.tsx").read_text()
+        self.assertIn("`button-${variant}`", button)
+        self.assertIn("button.button-unstyled,.button-unstyled", css)
+        self.assertIn("appearance:none", css)
+        for name in ("auth-reveal", "auth-signout"):
+            self.assertIn(f'className="{name}"', dialog)
+            self.assertIn(f".auth-dialog .{name}", css)
+        self.assertIn("background:#1b2a43", css)
+
     def test_proxy_preserves_external_port(self):
         nginx = (ROOT / "frontend/nginx.conf").read_text()
         self.assertIn("proxy_set_header Host $http_host;", nginx)
