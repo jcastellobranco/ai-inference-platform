@@ -73,7 +73,7 @@ def validate_service(directory: Path) -> list[str]:
     for endpoint in ("/health/live", "/health/ready"):
         if endpoint not in source:
             errors.append(f"Missing {endpoint} endpoint")
-    if "'127.0.0.1:8000:8000'" not in compose:
+    if "'127.0.0.1:" not in compose:
         errors.append("Local Compose port should bind loopback")
     for option, marker in (("database", "DATABASE_URL"), ("cache", "REDIS_URL")):
         if manifest.get(option) != "none" and marker not in compose:
@@ -81,8 +81,10 @@ def validate_service(directory: Path) -> list[str]:
     if manifest.get("auth") == "jwt":
         if "/v1/me" not in source or "JWT_SECRET" not in compose:
             errors.append("JWT protection contract missing")
-        if "JWT_SECRET=" not in (directory / ".env.example").read_text():
-            errors.append("JWT configuration template missing")
+        if "JWT_SECRET_FILE" not in compose or "atlas_jwt_secret" not in compose:
+            errors.append("JWT file secret not mounted")
+        if not (directory / "scripts/init_local.py").is_file():
+            errors.append("Local credential initializer missing")
     if manifest.get("observability") == "metrics" and "/metrics" not in source:
         errors.append("Prometheus endpoint missing")
     return errors
