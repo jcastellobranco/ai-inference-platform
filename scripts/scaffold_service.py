@@ -74,7 +74,7 @@ def scaffold(name: str, destination: Path, *, runtime: str = "fastapi",
               "COPY --chown=node:node package.json ./\n"
               "COPY --chown=node:node src/ ./src/\n"
               "USER node\nEXPOSE 8000\nCMD [\"node\", \"src/server.mjs\"]\n")
-        check = "npm test"
+        check = "npm install --no-audit --no-fund && npm test"
     write(".dockerignore", ".env\n.env.*\n.secrets/\n__pycache__/\n.venv/\nnode_modules/\n.git/\n")
     write(".gitignore", ".env\n.env.*\n!.env.example\n.secrets/\nnode_modules/\n__pycache__/\n.venv/\n")
     write(".github/workflows/ci.yml", "name: CI\non: [push, pull_request]\n"
