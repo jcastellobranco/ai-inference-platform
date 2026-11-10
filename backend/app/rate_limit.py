@@ -5,6 +5,7 @@ Uses a fixed 60-second window; no client-provided tenant keys.
 """
 import hashlib
 import os
+import redis
 from fastapi import HTTPException
 
 _SCRIPT = """
@@ -23,7 +24,6 @@ def enforce_rate_limit(tenant: str, subject: str) -> None:
         limit = int(os.getenv("ATLAS_RATE_LIMIT_PER_MINUTE", "120"))
         if not 1 <= limit <= 10000:
             raise ValueError("Invalid rate limit")
-        import redis
         client = redis.Redis.from_url(url, socket_connect_timeout=1, socket_timeout=1)
         digest = hashlib.sha256((tenant + "\x00" + subject).encode()).hexdigest()
         count = client.eval(_SCRIPT, 1, "atlas:quota:" + digest, 60)
