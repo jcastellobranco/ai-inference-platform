@@ -6,11 +6,13 @@ const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) || '/api';
 async function call<T>(
   path: string, token: string, options: RequestInit = {},
 ): Promise<T> {
-  if (!token.trim()) throw new ApiError(401, 'Connect your development JWT first.');
+  if (!token.trim()) throw new ApiError(401, 'Sign in first.');
   const response = await fetch(BASE_URL + path, {
     ...options,
+    credentials: 'same-origin',
     headers: {
-      Authorization: `Bearer ${token.trim()}`,
+      ...(document.cookie.match(/(?:^|; )atlas_csrf=([^;]*)/)?.[1] && !['GET','HEAD'].includes(options.method || 'GET') ? { 'X-CSRF-Token': decodeURIComponent(document.cookie.match(/(?:^|; )atlas_csrf=([^;]*)/)![1]) } : {}),
+      ...(token !== 'browser-session' ? { Authorization: `Bearer ${token.trim()}` } : {}),
       ...options.headers,
     },
   });
