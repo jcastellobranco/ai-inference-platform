@@ -28,6 +28,11 @@ class BrowserAuthContract(unittest.TestCase):
         self.assertIn("credentials: 'same-origin'", api)
         self.assertIn("X-CSRF-Token", api)
 
+    def test_proxy_preserves_external_port(self):
+        nginx = (ROOT / "frontend/nginx.conf").read_text()
+        self.assertIn("proxy_set_header Host $http_host;", nginx)
+        self.assertIn("proxy_set_header X-Forwarded-Proto $scheme;", nginx)
+
     def test_migration_and_compose(self):
         migration = (ROOT / "backend/migrations/012_browser_auth.sql").read_text()
         compose = (ROOT / "docker-compose.fullstack.yml").read_text()
