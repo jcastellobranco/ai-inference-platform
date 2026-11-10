@@ -1,0 +1,43 @@
+# Local-only ATLAS observability. Requires integrated + agents + redis overlays.
+# Dashboard and scrape configuration live in sibling llm-evaluation-observability.
+services:
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+    volumes:
+      - ../llm-evaluation-observability/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - atlas_prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    depends_on:
+      - backend
+      - evaluation
+    security_opt:
+      - no-new-privileges:true
+
+  grafana:
+    image: grafana/grafana:11.6.0
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Run make init to generate a local Grafana admin password}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ../llm-evaluation-observability/observability/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ../llm-evaluation-observability/observability/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - atlas_grafana_data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - prometheus
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  atlas_prometheus_data:
+  atlas_grafana_data:
