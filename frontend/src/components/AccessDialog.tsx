@@ -3,6 +3,7 @@ import { Button, Dialog, Field, Input } from './ui';
 
 interface Props {
   token: string;
+  authenticated?: boolean;
   onChange: (token: string) => void;
   onClose: () => void;
   onConnected: () => void;
@@ -37,7 +38,7 @@ async function errorMessage(response: Response, registering: boolean): Promise<s
   return 'Authentication failed (HTTP ' + response.status + ').';
 }
 
-export function AccessDialog({ onChange, onClose, onConnected, onDisconnected }: Props) {
+export function AccessDialog({ authenticated = false, onChange, onClose, onConnected, onDisconnected }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [register, setRegister] = useState(false);
@@ -152,12 +153,12 @@ export function AccessDialog({ onChange, onClose, onConnected, onDisconnected }:
         </Button>
       </form>
       <div className="auth-footer">
-        {canRegister && <p>Already have an account? <Button variant="unstyled" className="auth-link" type="button"
+        {canRegister && <p>{register ? 'Already have an account?' : 'First time here?'} <Button variant="unstyled" className="auth-link" type="button"
           onClick={() => { setRegister(!register); setError(''); }}>
           {register ? 'Sign in' : 'Create account'}</Button></p>}
         {!canRegister && setup?.account_exists && <p className="auth-hint">The initial account has already been created.</p>}
-        <Button variant="unstyled" className="auth-signout" type="button" disabled={busy}
-          onClick={() => void logout()}>Sign out of this browser</Button>
+        {authenticated && <Button variant="unstyled" className="auth-signout" type="button" disabled={busy}
+          onClick={() => void logout()}>Sign out of this browser</Button>}
       </div>
     </Dialog.Content>
   </Dialog.Root>;
