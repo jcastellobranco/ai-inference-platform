@@ -97,8 +97,10 @@ async def run_forever():
                 else:
                     from .agent_jobs import execute_agent
                     operation = execute_agent(job)
-            else:
+            elif job["job_type"] in (None, "inference"):
                 operation = infer(job["prompt"])
+            else:
+                raise ValueError("Unsupported job type")
             output = await asyncio.wait_for(operation, timeout=LEASE_SECONDS - 5)
             await asyncio.to_thread(finish_job, sessions, job, result=output)
         except Exception as exc:
@@ -106,7 +108,7 @@ async def run_forever():
             from .compliance_documents import MissingAuditDocument
             await asyncio.to_thread(finish_job, sessions, job,
                                     error=type(exc).__name__,
-                                    permanent=isinstance(exc, (GroundingError, MissingAuditDocument)))
+                                    permanent=isinstance(exc, (GroundingError, MissingAuditDocument, ValueError)))
 
 if __name__ == "__main__":
     asyncio.run(run_forever())
