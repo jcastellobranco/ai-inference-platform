@@ -51,6 +51,11 @@ def test_bootstrap_session_csrf_and_logout(auth_db):
     created = client.post("/v1/jobs", json={"prompt": "hello"},
                           headers={**headers, "X-CSRF-Token": csrf})
     assert created.status_code == 201, created.text
+    # Do not leave a queued job behind: worker lifecycle tests share this database.
+    tenant = client.get("/auth/me").json()["tenant"]
+    with browser_auth.SessionLocal.begin() as db:
+        db.execute(text("SELECT set_config('app.tenant_id', :tenant, true)"), {"tenant": tenant})
+        db.execute(text("DELETE FROM jobs WHERE id=:id"), {"id": created.json()["id"]})
     assert client.post("/auth/logout", headers={**headers, "X-CSRF-Token": csrf}).status_code == 204
     assert client.get("/auth/me").status_code == 401
     assert client.post("/auth/login", json=credentials, headers={"Origin": "http://evil.example"}).status_code == 403
