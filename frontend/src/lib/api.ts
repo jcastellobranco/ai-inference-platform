@@ -17,7 +17,7 @@ async function request<T>(
     credentials: 'same-origin',
     headers: {
       ...(document.cookie.match(/(?:^|; )atlas_csrf=([^;]*)/)?.[1] && !['GET','HEAD'].includes(options.method || 'GET') ? { 'X-CSRF-Token': decodeURIComponent(document.cookie.match(/(?:^|; )atlas_csrf=([^;]*)/)![1]) } : {}),
-      ...(token.trim() ? { Authorization: `Bearer ${token.trim()}` } : {}),
+      ...(token.trim() && token !== 'browser-session' ? { Authorization: `Bearer ${token.trim()}` } : {}),
       ...(options.body ? { 'Content-Type': 'application/json' } : {}),
       ...options.headers,
     },
