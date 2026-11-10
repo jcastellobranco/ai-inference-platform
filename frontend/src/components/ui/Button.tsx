@@ -5,6 +5,6 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 export function Button({ variant = 'primary', type = 'button', className = '', ...props }: Props) {
-  const classes = [variant === 'unstyled' ? '' : `button-${variant}`, className].filter(Boolean).join(' ');
+  const classes = [`button-${variant}`, className].filter(Boolean).join(' ');
   return <button type={type} className={classes || undefined} {...props} />;
 }
