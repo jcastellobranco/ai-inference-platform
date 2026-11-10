@@ -7,6 +7,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from .db import tenant_session
+from .rate_limit import enforce_rate_limit
 from .request_logging import RequestLoggingMiddleware
 from .telemetry import configure_telemetry, metrics_app
 
@@ -39,6 +40,7 @@ def principal(credentials: HTTPAuthorizationCredentials = Depends(bearer)):
     try:
         claims = jwt.decode(credentials.credentials, SECRET, algorithms=["HS256"], issuer=ISSUER, audience=AUDIENCE, options={"require": ["sub", "tenant_id", "exp", "iss", "aud"]})
         tenant = str(UUID(claims["tenant_id"]))
+        enforce_rate_limit(tenant, claims["sub"])
         return {"subject": claims["sub"], "tenant": tenant}
     except (jwt.PyJWTError, ValueError, KeyError):
         raise HTTPException(401, "Invalid token")
