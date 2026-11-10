@@ -112,6 +112,7 @@ nonzero rate charts.
 
 ```bash
 make logs-observability
+make smoke-observability # wait up to 60 seconds for all four Prometheus targets
 make down-observability  # preserves PostgreSQL and monitoring volumes
 ```
 
