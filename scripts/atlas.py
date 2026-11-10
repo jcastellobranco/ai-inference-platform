@@ -194,7 +194,7 @@ def create(args) -> int:
                 json.dumps(manifest, indent=2) + "\n")
             (staged / "README.md").write_text(
                 (staged / "README.md").read_text() +
-                "\nRun \`make init\` then \`make up\`. "
+                "\nRun `make init` then `make up`. "
                 "Use ATLAS_HOST_PORT for multiple local services. "
                 "Dependencies have real readiness probes, but no migrations "
                 "or tenant authorization policies are created.\n")
