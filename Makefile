@@ -5,11 +5,12 @@ BASE := -f docker-compose.fullstack.yml
 RAG := $(BASE) -f docker-compose.integrated.yml
 AGENT := $(RAG) -f docker-compose.agents.yml
 REDIS := $(AGENT) -f docker-compose.redis.yml
+OBSERVABILITY := $(REDIS) -f docker-compose.observability.yml
 
-.PHONY: help doctor init config-minimal config-rag config-agent config-redis up up-rag up-agent up-redis ps logs down smoke-rag smoke-agent new-service atlas-create
+.PHONY: help doctor init config-minimal config-rag config-agent config-redis config-observability up up-rag up-agent up-redis up-observability ps ps-observability logs logs-observability down down-observability smoke-rag smoke-agent new-service atlas-create
 
 help:
-	@printf '%s\n' 'ATLAS local developer commands:' '  make atlas-create NAME=foo AUTH=jwt OBSERVABILITY=metrics - generate full service' '  make doctor       - check local prerequisites (no containers)' '  make init         - create .env and untracked local Redis secret' '  make config-*     - validate Compose without starting containers' '  make up           - start minimal stack' '  make up-rag       - add RAG and evaluation' '  make up-agent     - add agent and MCP' '  make up-redis     - add Redis cache and quotas' '  make ps           - inspect minimal stack' '  make logs         - tail minimal stack logs' '  make down         - stop minimal stack (preserves volumes)' '  make smoke-rag    - run RAG smoke profile' '  make smoke-agent  - run agent smoke profile'
+	@printf '%s\n' 'ATLAS local developer commands:' '  make atlas-create NAME=foo AUTH=jwt OBSERVABILITY=metrics - generate full service' '  make doctor       - check local prerequisites (no containers)' '  make init         - create .env and untracked local Redis secret' '  make config-*     - validate Compose without starting containers' '  make up           - start minimal stack' '  make up-rag       - add RAG and evaluation' '  make up-agent     - add agent and MCP' '  make up-redis     - add Redis cache and quotas' '  make up-observability - add Prometheus and Grafana (ports 9090/3000)' '  make ps           - inspect minimal stack' '  make logs         - tail minimal stack logs' '  make down         - stop minimal stack (preserves volumes)' '  make smoke-rag    - run RAG smoke profile' '  make smoke-agent  - run agent smoke profile'
 atlas-create:
 	@test -n "$(NAME)" || (echo "Usage: make atlas-create NAME=my-api RUNTIME=fastapi AUTH=jwt OBSERVABILITY=metrics" && exit 2)
 	@python3 scripts/atlas.py create-service "$(NAME)" --runtime "$(or $(RUNTIME),fastapi)" --database "$(or $(DATABASE),none)" --cache "$(or $(CACHE),none)" --auth "$(or $(AUTH),none)" --observability "$(or $(OBSERVABILITY),none)"
@@ -28,6 +29,8 @@ config-agent:
 	@$(COMPOSE) $(AGENT) config --quiet
 config-redis:
 	@$(COMPOSE) $(REDIS) config --quiet
+config-observability:
+	@$(COMPOSE) $(OBSERVABILITY) config --quiet
 up:
 	@$(COMPOSE) $(BASE) up -d --build
 up-rag:
@@ -36,12 +39,20 @@ up-agent:
 	@$(COMPOSE) $(AGENT) up -d --build
 up-redis:
 	@$(COMPOSE) $(REDIS) up -d --build
+up-observability:
+	@$(COMPOSE) $(OBSERVABILITY) up -d --build
 ps:
 	@$(COMPOSE) $(BASE) ps
+ps-observability:
+	@$(COMPOSE) $(OBSERVABILITY) ps
 logs:
 	@$(COMPOSE) $(BASE) logs -f --tail=100
+logs-observability:
+	@$(COMPOSE) $(OBSERVABILITY) logs -f --tail=100 grafana prometheus evaluation backend
 down:
 	@$(COMPOSE) $(BASE) down
+down-observability:
+	@$(COMPOSE) $(OBSERVABILITY) down
 smoke-rag:
 	@$(COMPOSE) $(RAG) --profile smoke run --rm integration-smoke
 smoke-agent:

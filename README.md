@@ -86,6 +86,41 @@ docker compose -f docker-compose.fullstack.yml -f docker-compose.integrated.yml 
 
 See [agent integration setup and architecture](docs/AGENT_INTEGRATION.md) for the full procedure and limitations.
 
+## Local observability: Grafana + Prometheus
+
+The sibling [LLM Evaluation & Observability](https://github.com/jcastellobranco/llm-evaluation-observability)
+repository provides the **evaluation API, Prometheus scrape configuration and
+provisioned Grafana dashboard**. This inference repository starts everything
+together through an optional Docker Compose overlay.
+
+Ensure the five repositories are cloned as siblings and updated on `main`.
+From `ai-inference-platform`:
+
+```bash
+make init                  # preserves .env; generates Grafana password if missing
+make config-observability
+make up-observability      # full stack, RAG, agents, MCP, Redis, Prometheus, Grafana
+make ps-observability
+```
+
+Grafana: **http://127.0.0.1:3000** (default username `admin`; read
+`GRAFANA_ADMIN_PASSWORD` from your untracked `.env` locally).
+Prometheus targets: **http://127.0.0.1:9090/targets**. The dashboard is
+provisioned under the **ATLAS** folder. Generate some API and evaluation
+traffic and allow at least two scrape intervals (30+ seconds) before expecting
+nonzero rate charts.
+
+```bash
+make logs-observability
+make down-observability  # preserves PostgreSQL and monitoring volumes
+```
+
+Both UIs bind only to loopback, not public interfaces. Prometheus scrapes
+`backend:8000/metrics/` and `evaluation:8000/metrics/` over the private
+Compose network. The evaluation metrics implementation lives in the sibling
+repository, so update that checkout before rebuilding. Worker/RAG metrics
+and automatic agent telemetry delivery are not yet instrumented.
+
 ## Minimal stack (without RAG/evaluation)
 
 ```bash
