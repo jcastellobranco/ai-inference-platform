@@ -18,7 +18,7 @@ Reference portfolio platform for tenant-isolated, authenticated inference jobs, 
 
 Use `make init` to create untracked local configuration and a Redis secret without overwriting existing values; then edit `.env` and run `make doctor`. Start with `make up`, `make up-rag`, `make up-agent`, or `make up-redis` depending on the services you need. Use `make config-redis` to validate the full Compose configuration without starting containers.
 
-Create a new independent FastAPI service skeleton with `python3 scripts/scaffold_service.py my-new-service`. This is a starter, not a production authentication or observability template.
+Create an independent FastAPI or Node.js service with `make new-service NAME=my-service RUNTIME=fastapi` or `make new-service NAME=events-api RUNTIME=node POSTGRES=1 REDIS=1`. Templates include local Compose, healthchecks, starter tests and CI; auth/observability integration is not automatic.
 
 See [Developer Experience and Golden Paths](docs/DEVELOPER_EXPERIENCE.md).
 
