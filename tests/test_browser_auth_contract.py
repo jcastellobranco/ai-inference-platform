@@ -22,7 +22,7 @@ class BrowserAuthContract(unittest.TestCase):
     def test_frontend_uses_session(self):
         dialog = (ROOT / "frontend/src/components/AccessDialog.tsx").read_text()
         self.assertIn("/api/auth/", dialog)
-        self.assertIn("type=\"password\"", dialog)
+        self.assertIn("showPassword ? 'text' : 'password'", dialog)
         self.assertNotIn("Paste a short-lived developer JWT", dialog)
         api = (ROOT / "frontend/src/lib/api.ts").read_text()
         self.assertIn("credentials: 'same-origin'", api)
