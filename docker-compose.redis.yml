@@ -27,6 +27,8 @@ services:
   backend:
     environment:
       ATLAS_REDIS_URL: redis://:${ATLAS_REDIS_PASSWORD:?Set ATLAS_REDIS_PASSWORD}@redis:6379/0
+      ATLAS_RATE_LIMIT_ENABLED: "true"
+      ATLAS_RATE_LIMIT_PER_MINUTE: ${ATLAS_RATE_LIMIT_PER_MINUTE:-120}
     depends_on:
       redis:
         condition: service_healthy
