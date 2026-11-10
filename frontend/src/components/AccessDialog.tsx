@@ -69,3 +69,5 @@ export function AccessDialog({ onChange, onClose, onConnected, onDisconnected }:
       </Button>
     </Dialog.Content>
   </Dialog.Root>;
+
+}
