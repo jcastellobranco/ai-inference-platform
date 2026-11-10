@@ -31,10 +31,10 @@ Optional integration checks: `make smoke-rag` and `make smoke-agent`. They requi
 ## Service self-service
 
 ```bash
-python3 scripts/scaffold_service.py my-new-service
+make new-service NAME=my-new-service RUNTIME=fastapi\n# or Node.js, with external dependency connection placeholders:\nmake new-service NAME=events-api RUNTIME=node POSTGRES=1 REDIS=1
 ```
 
-Creates a sibling `my-new-service` folder with a FastAPI app, health endpoints, a minimal non-root Dockerfile, and dependency manifest. It **does not** auto-register the new service in Compose, create secrets, or claim production-ready auth. It refuses to overwrite an existing directory. Add service-specific tenant authorization, metrics, tests and CI as appropriate.
+Creates a sibling independent service with FastAPI or Node.js, health endpoints, a non-root Dockerfile, a standalone Compose file, a starter test and a CI workflow. Optional POSTGRES/REDIS flags add **connection-variable placeholders only**; they do not provision databases or Redis. The generator refuses to overwrite an existing directory. Authentication, authorization, metrics and tracing remain explicit future work, not automatic capabilities.
 
 ## Service contract baseline
 
