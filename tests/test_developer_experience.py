@@ -74,6 +74,15 @@ class ObservabilityContracts(unittest.TestCase):
         self.assertIn("127.0.0.1:9090:9090", overlay)
         self.assertIn("GRAFANA_ADMIN_PASSWORD:?", overlay)
         self.assertIn("up-observability:", makefile)
+        self.assertIn("docker-proxy:", overlay)
+        self.assertIn("CONTAINERS:", overlay)
+        self.assertIn('POST: "0"', overlay)
+        self.assertIn("internal: true", overlay)
+        self.assertIn("atlas_loki_data", overlay)
+        self.assertIn("llm-evaluation-observability/observability/alloy.alloy", overlay)
+        self.assertIn('WORKER_METRICS_ENABLED: "true"', overlay)
+        self.assertIn("127.0.0.1:3000:3000", overlay)
+        self.assertNotIn("3100:3100", overlay)
         self.assertIn("config-observability:", makefile)
 
 
