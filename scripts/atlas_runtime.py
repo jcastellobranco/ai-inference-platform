@@ -131,7 +131,7 @@ def _node(target: Path, *, postgres: bool, redis: bool, metrics: bool) -> None:
         imports = []
         lines = ["async function checkDependencies() {"]
         if postgres:
-            imports.append("import {Client} from 'pg';")
+            imports.extend(["import pg from 'pg';", "const {Client} = pg;"])
             lines.extend([
                 "  if (!process.env.DATABASE_URL) throw Error('dependency unavailable');",
                 "  const db = new Client({connectionString: process.env.DATABASE_URL,",
@@ -212,4 +212,34 @@ def _node(target: Path, *, postgres: bool, redis: bool, metrics: bool) -> None:
             (target / "README.md").read_text() +
             "\nMetrics: /metrics includes request counts and latency with bounded route labels.\n"
         )
+    spec = {
+        "openapi": "3.1.0",
+        "info": {"title": target.name, "version": "0.1.0"},
+        "paths": {
+            "/health/live": {"get": {"responses": {"200": {"description": "Alive"}}}},
+            "/health/ready": {"get": {"responses": {"200": {"description": "Ready"},
+                                                       "503": {"description": "Not ready"}}}},
+        },
+    }
+    if "/v1/me" in body:
+        spec["paths"]["/v1/me"] = {
+            "get": {"security": [{"bearerAuth": []}],
+                    "responses": {"200": {"description": "Authenticated principal"},
+                                  "401": {"description": "Invalid token"}}}}
+        spec["components"] = {"securitySchemes": {
+            "bearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}}}
+    if metrics:
+        spec["paths"]["/metrics"] = {"get": {
+            "responses": {"200": {"description": "Prometheus text metrics"}}}}
+    body = body.replace(
+        "const server = http.createServer",
+        "const OPENAPI = " + json.dumps(spec, separators=(",", ":")) + ";\n"
+        "const server = http.createServer"
+    )
+    body = body.replace(
+        "  send(res,404,{error:'not_found'});",
+        "  if (req.method === 'GET' && path === '/openapi.json') "
+        "{ send(res,200,OPENAPI); return; }\n"
+        "  send(res,404,{error:'not_found'});"
+    )
     src.write_text(body)
