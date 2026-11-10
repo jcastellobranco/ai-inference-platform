@@ -36,6 +36,26 @@ def doctor() -> int:
         print(f"ACTION: {problem}")
     return 1 if problems else 0
 
+def ensure_grafana_password(env: Path) -> None:
+    """Create an untracked local Grafana password without replacing existing secrets."""
+    key = "GRAFANA_ADMIN_PASSWORD="
+    lines = env.read_text(encoding="utf-8").splitlines()
+    existing = [i for i, line in enumerate(lines) if line.startswith(key)]
+    if existing and any(lines[i][len(key):].strip() for i in existing):
+        return
+    generated = key + secrets.token_urlsafe(36)
+    if existing:
+        lines[existing[0]] = generated
+    else:
+        lines.append(generated)
+    env.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    try:
+        env.chmod(0o600)
+    except OSError:
+        pass
+    print("Created local Grafana admin password in .env (not displayed)")
+
+
 def init() -> int:
     env = ROOT / ".env"
     if not env.exists():
@@ -51,6 +71,7 @@ def init() -> int:
         print("Created .env from template; replace placeholders before starting services")
     else:
         print("Preserving existing .env")
+    ensure_grafana_password(env)
     directory = ROOT / ".secrets"
     directory.mkdir(mode=0o700, exist_ok=True)
     secret = directory / "redis_password"
