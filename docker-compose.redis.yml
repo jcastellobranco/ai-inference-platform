@@ -1,34 +1,43 @@
-# Optional local Redis for cache and distributed request quotas.
-# docker compose -f docker-compose.fullstack.yml -f docker-compose.integrated.yml \
-#   -f docker-compose.agents.yml -f docker-compose.redis.yml up -d --build
-# Redis is NOT the job broker: PostgreSQL remains the durable jobs store.
+# Optional local Redis. Create .secrets/redis_password (untracked).
 services:
   redis:
     image: redis:7.4-alpine
-    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru", "--requirepass", "${ATLAS_REDIS_PASSWORD:?Set ATLAS_REDIS_PASSWORD}"]
-    environment:
-      REDISCLI_AUTH: ${ATLAS_REDIS_PASSWORD:?Set ATLAS_REDIS_PASSWORD}
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        password="$$(cat /run/secrets/atlas_redis_password)"
+        test "$$(printf %s "$$password" | wc -c)" -ge 32
+        printf 'save ""\nappendonly no\nmaxmemory 128mb\nmaxmemory-policy allkeys-lru\nrequirepass %s\n' "$$password" > /tmp/redis.conf
+        unset password
+        exec redis-server /tmp/redis.conf
+    secrets: [atlas_redis_password]
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$(cat /run/secrets/atlas_redis_password) redis-cli ping | grep -qx PONG"]
       interval: 5s
       timeout: 3s
       retries: 10
     security_opt: ["no-new-privileges:true"]
-    networks: [default]
   agent:
     environment:
-      ATLAS_REDIS_URL: redis://:${ATLAS_REDIS_PASSWORD:?Set ATLAS_REDIS_PASSWORD}@redis:6379/0
+      ATLAS_REDIS_HOST: redis
+      ATLAS_REDIS_PASSWORD_FILE: /run/secrets/atlas_redis_password
       ATLAS_PLANNER_CACHE_ENABLED: "true"
-      ATLAS_CACHE_HMAC_KEY: ${ATLAS_CACHE_HMAC_KEY:?Set ATLAS_CACHE_HMAC_KEY}
+      ATLAS_CACHE_HMAC_KEY: ${ATLAS_CACHE_HMAC_KEY:?Set a unique 32+ character HMAC key}
       ATLAS_PLANNER_CACHE_TTL_SECONDS: ${ATLAS_PLANNER_CACHE_TTL_SECONDS:-120}
+    secrets: [atlas_redis_password]
     depends_on:
       redis:
         condition: service_healthy
   backend:
     environment:
-      ATLAS_REDIS_URL: redis://:${ATLAS_REDIS_PASSWORD:?Set ATLAS_REDIS_PASSWORD}@redis:6379/0
+      ATLAS_REDIS_HOST: redis
+      ATLAS_REDIS_PASSWORD_FILE: /run/secrets/atlas_redis_password
       ATLAS_RATE_LIMIT_ENABLED: "true"
       ATLAS_RATE_LIMIT_PER_MINUTE: ${ATLAS_RATE_LIMIT_PER_MINUTE:-120}
+    secrets: [atlas_redis_password]
     depends_on:
       redis:
         condition: service_healthy
+secrets:
+  atlas_redis_password:
+    file: ./.secrets/redis_password
