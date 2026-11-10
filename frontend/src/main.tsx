@@ -54,7 +54,7 @@ function App() {
       {view === 'jobs' && <JobsPage token={authKey} connected={connected} jobs={jobs} loading={jobsLoading}
         onRefresh={refreshJobs} openAccess={openAccess}/>}
     </AppShell>
-    {showAccess && <AccessDialog token={token} onChange={setToken} onClose={() => setShowAccess(false)}
+    {showAccess && <AccessDialog token={token} authenticated={identity} onChange={setToken} onClose={() => setShowAccess(false)}
       onConnected={() => setIdentity(true)} onDisconnected={() => setIdentity(false)}/>}
   </>;
 }
