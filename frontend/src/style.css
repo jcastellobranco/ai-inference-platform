@@ -3,6 +3,8 @@
 *{box-sizing:border-box}body{margin:0;min-width:320px}
 button,input,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}
 button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #9db8ff;outline-offset:2px}
+/* Unstyled buttons must not inherit native browser button chrome. */
+button.button-unstyled,.button-unstyled{appearance:none;-webkit-appearance:none;background:transparent;border:0;border-radius:0;box-shadow:none;color:inherit;padding:0;font:inherit;line-height:inherit}
 h1,h2,h3{font-family:'Space Grotesk',system-ui,sans-serif}p{line-height:1.55}.muted{color:#9cabc5}
 .app-layout{min-height:100vh;display:flex}.sidebar{width:246px;flex-shrink:0;background:#0c1423;border-right:1px solid #253149;min-height:100vh;padding:28px 16px;display:flex;flex-direction:column}
 .brand{display:flex;align-items:center;gap:13px;margin:0 12px 54px}.brand-mark{width:45px;height:45px;background:#cadcff;color:#14213b;border-radius:12px;display:grid;place-items:center;font-size:27px;font-weight:700}.brand-mark span{color:#456de1}.brand strong{font-family:'Space Grotesk';font-size:21px;letter-spacing:.15em}.brand small{display:block;color:#8193af;font-size:9px;letter-spacing:.18em}.eyebrow,.nav-label{color:#91a5c8;font-weight:700;letter-spacing:.15em;font-size:10px}.nav-label{padding:0 14px 12px}.main-nav{display:grid;gap:5px}.nav-link{width:100%;display:flex;align-items:center;gap:12px;padding:12px;color:#9daec7;border:1px solid transparent;border-radius:10px;background:transparent;text-align:left;font-size:13px;font-weight:600}.nav-link:hover,.nav-link.active{color:#f4f7ff;background:#1a2942}.nav-link.active{border-color:#304970}.nav-symbol{font-size:22px;width:25px;text-align:center}.nav-hint{margin-left:auto;color:#667c9b;font-size:10px}.sidebar-bottom{margin-top:auto;padding:24px 9px 0;border-top:1px solid #24314a}.sidebar-info{font-size:10px;letter-spacing:.1em;display:flex;gap:10px;align-items:center}.pulse,.connection-indicator,.hero-kicker-dot{width:8px;height:8px;border-radius:50%;background:#65d7b0;display:inline-block;flex-shrink:0;box-shadow:0 0 0 4px #65d7b01b}.sidebar-bottom p,.sidebar-caption{color:#899bb8;font-size:11px}.sidebar-access{display:flex;align-items:center;gap:10px;color:#d3def2;background:#19243a;border:1px solid #34435b;padding:11px 12px;border-radius:9px;width:100%;font-size:12px}.sidebar-access span:last-child{margin-left:auto}.sidebar-caption{font-size:9px!important;letter-spacing:.12em;margin-top:25px}
@@ -86,8 +88,8 @@ button.button-primary,.button-primary{background:#9ebaff;border:1px solid #9ebaf
 .auth-dialog .auth-form .ui-input::placeholder{color:#758ba9}
 .auth-password{position:relative}
 .auth-password .ui-input{padding-right:68px}
-.auth-dialog .auth-reveal{position:absolute;right:7px;top:50%;transform:translateY(-50%);padding:7px 9px;color:#a7c1ff;font-size:11px;font-weight:700;border-radius:6px}
-.auth-dialog .auth-reveal:hover{background:#233853}
+.auth-dialog .auth-reveal{position:absolute;right:7px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;min-width:49px;min-height:30px;padding:6px 9px;background:#1b2a43;border:1px solid #30445f;border-radius:7px;color:#b9ceff;font-size:11px;font-weight:700;line-height:1}
+.auth-dialog .auth-reveal:hover:not(:disabled){background:#263b5b;border-color:#5877a1;color:#e1eaff}
 .auth-dialog .auth-hint{font-size:11px;line-height:1.5;color:#9cabc5;margin:8px 0 14px}
 .auth-dialog .auth-error{margin:0 0 15px;line-height:1.55}
 .auth-dialog .auth-submit{width:100%;justify-content:center;gap:14px;min-height:46px;margin-top:7px}
@@ -95,6 +97,6 @@ button.button-primary,.button-primary{background:#9ebaff;border:1px solid #9ebaf
 .auth-dialog .auth-footer p{font-size:12px;color:#a9bad2;margin:0 0 11px}
 .auth-dialog .auth-link{color:#a7c1ff;font-size:12px;font-weight:700;padding:5px}
 .auth-dialog .auth-link:hover{text-decoration:underline}
-.auth-dialog .auth-signout{font-size:11px;color:#899bb8;padding:9px}
-.auth-dialog .auth-signout:hover{color:#ffc4d0}
+.auth-dialog .auth-signout{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:8px 14px;background:#1b2a43;border:1px solid #3a4d68;border-radius:8px;color:#b7c9e3;font-size:11px;font-weight:600}
+.auth-dialog .auth-signout:hover:not(:disabled){background:#263b5b;border-color:#5877a1;color:#ffc4d0}
 @media(max-width:640px){.auth-dialog{padding:24px 21px}.auth-dialog .auth-heading h2{font-size:25px}}
