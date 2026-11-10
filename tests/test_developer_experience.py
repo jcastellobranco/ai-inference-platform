@@ -54,10 +54,28 @@ class GoldenPathTests(unittest.TestCase):
                 secret = Path(tmp) / ".secrets/redis_password"
                 value = secret.read_text()
                 self.assertGreaterEqual(len(value), 32)
+                env_text = (Path(tmp) / ".env").read_text()
+                password_line = next(line for line in env_text.splitlines()
+                                     if line.startswith("GRAFANA_ADMIN_PASSWORD="))
+                self.assertGreaterEqual(len(password_line.split("=", 1)[1]), 32)
                 self.assertEqual(mod.init(), 0)
                 self.assertEqual(secret.read_text(), value)
+                self.assertEqual((Path(tmp) / ".env").read_text(), env_text)
             finally:
                 mod.ROOT = original
+
+class ObservabilityContracts(unittest.TestCase):
+    def test_local_observability_overlay(self):
+        overlay = (ROOT / "docker-compose.observability.yml").read_text()
+        makefile = (ROOT / "Makefile").read_text()
+        self.assertIn("llm-evaluation-observability/observability/prometheus.yml", overlay)
+        self.assertIn("llm-evaluation-observability/observability/grafana", overlay)
+        self.assertIn("127.0.0.1:3000:3000", overlay)
+        self.assertIn("127.0.0.1:9090:9090", overlay)
+        self.assertIn("GRAFANA_ADMIN_PASSWORD:?", overlay)
+        self.assertIn("up-observability:", makefile)
+        self.assertIn("config-observability:", makefile)
+
 
 if __name__ == "__main__":
     unittest.main()
