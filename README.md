@@ -105,8 +105,8 @@ make ps-observability
 
 Grafana: **http://127.0.0.1:3000** (default username `admin`; read
 `GRAFANA_ADMIN_PASSWORD` from your untracked `.env` locally).
-Prometheus targets: **http://127.0.0.1:9090/targets**. The dashboard is
-provisioned under the **ATLAS** folder. Generate some API and evaluation
+Prometheus targets: **http://127.0.0.1:9090/targets**. Dashboards **ATLAS · Local observability**, **ATLAS · RAG & Worker**, and
+**ATLAS · Container logs** are provisioned under the **ATLAS** folder. Generate some API and evaluation
 traffic and allow at least two scrape intervals (30+ seconds) before expecting
 nonzero rate charts.
 
@@ -116,10 +116,18 @@ make down-observability  # preserves PostgreSQL and monitoring volumes
 ```
 
 Both UIs bind only to loopback, not public interfaces. Prometheus scrapes
-`backend:8000/metrics/` and `evaluation:8000/metrics/` over the private
-Compose network. The evaluation metrics implementation lives in the sibling
-repository, so update that checkout before rebuilding. Worker/RAG metrics
-and automatic agent telemetry delivery are not yet instrumented.
+`backend:8000/metrics/`, `evaluation:8000/metrics/`, `rag:8000/metrics/`, and
+`worker:9101/metrics` over the private Compose network. Loki and Grafana Alloy
+collect service-specific Docker logs using a restricted Docker API proxy.
+Update the RAG and evaluation sibling repositories before rebuilding. Agent
+telemetry delivery is still optional; its chart can be empty.
+
+To inspect a container's logs in Grafana, open **Explore → ATLAS Loki** and
+query `{platform="atlas",service="worker"}` (replace `worker` with `rag`,
+`backend`, etc.). Logs are retained for seven days. Never include prompts,
+documents or credentials in log messages; the collector cannot guarantee
+redaction. The Docker socket proxy is restricted to read-only API operations
+but remains sensitive on a shared Docker daemon.
 
 ## Minimal stack (without RAG/evaluation)
 
