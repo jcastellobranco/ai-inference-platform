@@ -99,13 +99,24 @@ def limited_registration() -> str:
     # Registration must never be open to arbitrary users in this portfolio demo.
     return os.getenv("ATLAS_BOOTSTRAP_EMAIL", "").strip().lower()
 
+@router.get("/setup")
+def setup():
+    """Public bootstrap status without disclosing the configured email."""
+    with SessionLocal() as db:
+        has_account = bool(db.execute(text("SELECT EXISTS(SELECT 1 FROM app_users)")).scalar())
+    return {"registration_available": bool(limited_registration()) and not has_account,
+            "account_exists": has_account, "bootstrap_configured": bool(limited_registration())}
+
+
 @router.post("/register", status_code=201)
 def register(body: Credentials, request: Request, response: Response):
     validate_origin(request)
     email = body.email.lower()
     throttle(email, request)
-    if not limited_registration() or email != limited_registration():
-        raise HTTPException(403, "Self-registration disabled")
+    if not limited_registration():
+        raise HTTPException(403, "Bootstrap email is not configured on the backend")
+    if email != limited_registration():
+        raise HTTPException(403, "Email does not match the configured bootstrap email")
     with SessionLocal.begin() as db:
         existing = db.execute(text("SELECT 1 FROM app_users LIMIT 1")).first()
         if existing:
