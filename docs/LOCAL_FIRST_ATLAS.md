@@ -12,7 +12,8 @@ ATLAS is a collection of **independent portfolio projects**. Integration is opti
 - `slm-finetuning-lab`: opt-in local LoRA training
 - `atlas-infrastructure`: **unapplied** Terraform reference
 
-## Start locally
+## Developer self-service
+Run `make init`, configure `.env`, then `make doctor`. Use `make config-minimal` or `make config-redis` to check Compose before starting services. See [Developer Experience](DEVELOPER_EXPERIENCE.md) for golden paths and service scaffolding.\n\n## Start locally
 Clone the sibling repositories in one directory. In `ai-inference-platform` copy `.env.example` to `.env`, replace placeholder secrets with unique values, and never commit `.env`. For the basic stack:
 
 ```bash
@@ -30,7 +31,7 @@ docker compose -f docker-compose.fullstack.yml -f docker-compose.integrated.yml 
   -f docker-compose.agents.yml -f docker-compose.redis.yml up -d --build
 ```
 
-The Redis overlay requires `ATLAS_REDIS_PASSWORD` and `ATLAS_CACHE_HMAC_KEY` in `.env`; the HMAC key must be at least 32 characters. For the Compose Redis URL use a long random **URL-safe** password without reserved URL characters. Redis is ephemeral and must not be used for durable job state. PostgreSQL remains the durable job queue. If Redis is unavailable, agent cache is bypassed but authenticated API requests with rate limiting enabled fail closed (503).
+The Redis overlay reads its password from the untracked `.secrets/redis_password` file (created by `make init`), not from a Compose-interpolated password. Configure a separate `ATLAS_CACHE_HMAC_KEY` of at least 32 characters in `.env`. Redis is ephemeral and must not be used for durable job state. PostgreSQL remains the durable job queue. If Redis is unavailable, agent cache is bypassed but authenticated API requests with rate limiting enabled fail closed (503).
 
 The agent's optional telemetry endpoint uses HTTPS only; local Compose HTTP evaluation does **not** enable agent telemetry delivery by default. Evaluation endpoints are independently available, but operational telemetry integration requires an HTTPS endpoint or an explicitly designed private-network transport.
 
