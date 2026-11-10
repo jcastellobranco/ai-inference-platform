@@ -68,3 +68,33 @@ button.button-primary,.button-primary{background:#9ebaff;border:1px solid #9ebaf
 .audit-finding details p{white-space:pre-wrap;overflow-wrap:anywhere;background:#0a1627;border-radius:7px;padding:11px}
 .audit-finding details small{display:block;color:#8da3c3;margin-top:6px}
 @media(max-width:640px){.audit-report,.audit-step,.audit-contract{padding:14px}}
+
+
+/* ATLAS browser authentication — scoped to the access dialog. */
+.auth-dialog{max-width:460px;padding:32px 34px 26px;background:#142238;border:1px solid #3b506e}
+.auth-dialog .dialog-heading{margin-bottom:29px}
+.auth-brand{display:flex;align-items:center;gap:12px;color:#eff4ff;font-family:'Space Grotesk',system-ui,sans-serif;font-weight:700;font-size:17px;letter-spacing:.12em}
+.auth-brand small{display:block;font-family:'DM Sans',system-ui,sans-serif;color:#91a5c8;font-size:9px;letter-spacing:.2em;margin-top:3px}
+.auth-brand-mark{display:grid;place-items:center;width:39px;height:39px;background:#cadcff;color:#14213b;border-radius:10px;font-size:22px;letter-spacing:0}
+.auth-brand-mark span{color:#456de1}
+.auth-dialog .auth-heading h2{font-size:29px;line-height:1.15;letter-spacing:-.03em;margin:12px 0}
+.auth-dialog .auth-heading p{font-size:13px;line-height:1.65;margin:0 0 23px}
+.auth-dialog .auth-form .ui-field{margin-bottom:18px}
+.auth-dialog .auth-form .ui-field>label{display:block;margin:0 0 8px;font-size:12px;font-weight:700;color:#d6e1f1}
+.auth-dialog .auth-form .ui-input{display:block;width:100%;min-height:46px;border:1px solid #33455f;background:#0b1526;color:#eff4ff;border-radius:9px;padding:12px 14px;font-size:13px}
+.auth-dialog .auth-form .ui-input:focus-visible{outline:2px solid #9db8ff;outline-offset:1px}
+.auth-dialog .auth-form .ui-input::placeholder{color:#758ba9}
+.auth-password{position:relative}
+.auth-password .ui-input{padding-right:68px}
+.auth-dialog .auth-reveal{position:absolute;right:7px;top:50%;transform:translateY(-50%);padding:7px 9px;color:#a7c1ff;font-size:11px;font-weight:700;border-radius:6px}
+.auth-dialog .auth-reveal:hover{background:#233853}
+.auth-dialog .auth-hint{font-size:11px;line-height:1.5;color:#9cabc5;margin:8px 0 14px}
+.auth-dialog .auth-error{margin:0 0 15px;line-height:1.55}
+.auth-dialog .auth-submit{width:100%;justify-content:center;gap:14px;min-height:46px;margin-top:7px}
+.auth-dialog .auth-footer{border-top:1px solid #304159;margin-top:24px;padding-top:17px;text-align:center}
+.auth-dialog .auth-footer p{font-size:12px;color:#a9bad2;margin:0 0 11px}
+.auth-dialog .auth-link{color:#a7c1ff;font-size:12px;font-weight:700;padding:5px}
+.auth-dialog .auth-link:hover{text-decoration:underline}
+.auth-dialog .auth-signout{font-size:11px;color:#899bb8;padding:9px}
+.auth-dialog .auth-signout:hover{color:#ffc4d0}
+@media(max-width:640px){.auth-dialog{padding:24px 21px}.auth-dialog .auth-heading h2{font-size:25px}}

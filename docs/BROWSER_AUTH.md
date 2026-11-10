@@ -27,3 +27,21 @@ For HTTPS deployments, set COOKIE_SECURE=true and ensure trusted reverse-proxy h
 ## Limitations
 
 This is a **single-account bootstrap** for local portfolio demonstration, not open public sign-up or a full identity provider. No password reset, MFA, email verification, administrative invitations, OIDC/JWKS, or account recovery are implemented. There is no session rotation after login and no central identity provider. HTTPS, trusted proxies, monitoring and independent security review are required before internet exposure.
+
+## Troubleshooting login on localhost:8080
+
+If you see **Invalid request origin**, rebuild the frontend Nginx image. The reverse proxy must preserve the browser's Host **including port 8080**; a proxy that forwards only `localhost` will reject requests originating from `http://localhost:8080`.
+
+If registration is unavailable, visit `http://localhost:8080/api/auth/setup` to inspect the safe bootstrap status. `bootstrap_configured=false` means the backend container has not received `ATLAS_BOOTSTRAP_EMAIL`. `account_exists=true` means the first account already exists; use **Sign in**, not **Create account**.
+
+Check the effective backend environment without printing secrets:
+
+    docker compose -f docker-compose.fullstack.yml -f docker-compose.integrated.yml -f docker-compose.agents.yml -f docker-compose.redis.yml exec backend python -c 'import os; print("bootstrap configured:", bool(os.getenv("ATLAS_BOOTSTRAP_EMAIL")))'
+
+Apply updates from the root repository directory:
+
+    git switch main
+    git pull --ff-only origin main
+    make up-redis
+
+**Do not run `docker compose down -v`** to troubleshoot login: it destroys the PostgreSQL volume containing your account and jobs. If the issue persists, inspect backend and migrate logs using the same Compose overlay flags as above.

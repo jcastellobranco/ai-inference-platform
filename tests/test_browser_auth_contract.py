@@ -22,11 +22,16 @@ class BrowserAuthContract(unittest.TestCase):
     def test_frontend_uses_session(self):
         dialog = (ROOT / "frontend/src/components/AccessDialog.tsx").read_text()
         self.assertIn("/api/auth/", dialog)
-        self.assertIn("type=\"password\"", dialog)
+        self.assertIn("showPassword ? 'text' : 'password'", dialog)
         self.assertNotIn("Paste a short-lived developer JWT", dialog)
         api = (ROOT / "frontend/src/lib/api.ts").read_text()
         self.assertIn("credentials: 'same-origin'", api)
         self.assertIn("X-CSRF-Token", api)
+
+    def test_proxy_preserves_external_port(self):
+        nginx = (ROOT / "frontend/nginx.conf").read_text()
+        self.assertIn("proxy_set_header Host $http_host;", nginx)
+        self.assertIn("proxy_set_header X-Forwarded-Proto $scheme;", nginx)
 
     def test_migration_and_compose(self):
         migration = (ROOT / "backend/migrations/012_browser_auth.sql").read_text()
