@@ -19,3 +19,10 @@ GRANT SELECT, INSERT, UPDATE ON app_users TO platform_runtime;
 GRANT SELECT, INSERT, DELETE ON browser_sessions TO platform_runtime;
 -- User/session tables are only accessed through the auth module. Job tables
 -- continue to enforce RLS with the authenticated tenant identity.
+
+CREATE TABLE IF NOT EXISTS auth_attempts (
+  identity_hash text PRIMARY KEY,
+  attempts integer NOT NULL DEFAULT 0,
+  window_start timestamptz NOT NULL DEFAULT now()
+);
+GRANT SELECT, INSERT, UPDATE ON auth_attempts TO platform_runtime;
