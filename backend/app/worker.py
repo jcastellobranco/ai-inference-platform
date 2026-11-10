@@ -4,15 +4,22 @@ Requires WORKER_DATABASE_URL for a dedicated service account with an explicit
 RLS policy. Never connect with the tenant-facing API database account.
 """
 import asyncio
+import logging
 import os
+import time
 from uuid import uuid4
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
+from prometheus_client import start_http_server
+from .worker_metrics import (JOB_RESULTS, JOB_DURATION, FENCING_CONFLICTS,
+                             safe_type, set_queue_counts)
 
 POLL_SECONDS = float(os.getenv("WORKER_POLL_SECONDS", "1"))
 LEASE_SECONDS = int(os.getenv("WORKER_LEASE_SECONDS", "120"))
 MAX_ATTEMPTS = int(os.getenv("WORKER_MAX_ATTEMPTS", "3"))
 WORKER_ID = os.getenv("WORKER_ID") or str(uuid4())
+logger = logging.getLogger("atlas.worker")
+QUEUE_SAMPLE_SECONDS = 15
 
 def make_session():
     url = os.environ.get("WORKER_DATABASE_URL")
@@ -71,6 +78,17 @@ def expire_exhausted(sessions):
               AND attempts >= :max_attempts
         """), {"max_attempts": MAX_ATTEMPTS}).rowcount
 
+def sample_queue(sessions):
+    """Read only aggregate active-job counts with the dedicated worker DB role."""
+    with sessions() as db:
+        rows = db.execute(text("""
+            SELECT status, count(*) FROM jobs
+            WHERE status IN ('queued', 'running', 'retrying')
+            GROUP BY status
+        """)).all()
+    set_queue_counts(rows)
+
+
 async def infer(prompt: str) -> str:
     """Demonstration provider only, not a real language model."""
     await asyncio.sleep(0)
@@ -80,12 +98,25 @@ async def run_forever():
     if LEASE_SECONDS < 10 or MAX_ATTEMPTS < 1 or POLL_SECONDS <= 0:
         raise ValueError("Invalid worker lease/retry/poll configuration")
     sessions = make_session()
+    metrics_enabled = os.getenv("WORKER_METRICS_ENABLED", "false").lower() == "true"
+    if metrics_enabled:
+        start_http_server(int(os.getenv("WORKER_METRICS_PORT", "9101")), addr="0.0.0.0")
+        logger.info("worker_metrics_started port=%s", os.getenv("WORKER_METRICS_PORT", "9101"))
+    last_sample = 0.0
     while True:
+        if metrics_enabled and time.monotonic() - last_sample >= QUEUE_SAMPLE_SECONDS:
+            try:
+                await asyncio.to_thread(sample_queue, sessions)
+            except Exception as exc:
+                logger.warning("worker_queue_sample_failed error_type=%s", type(exc).__name__)
+            last_sample = time.monotonic()
         await asyncio.to_thread(expire_exhausted, sessions)
         job = await asyncio.to_thread(claim_job, sessions)
         if job is None:
             await asyncio.sleep(POLL_SECONDS)
             continue
+        job_type = safe_type(job.get("job_type"))
+        started = time.monotonic()
         try:
             if job["job_type"] == "rag":
                 from .rag_jobs import execute_rag
@@ -100,13 +131,32 @@ async def run_forever():
             else:
                 operation = infer(job["prompt"])
             output = await asyncio.wait_for(operation, timeout=LEASE_SECONDS - 5)
-            await asyncio.to_thread(finish_job, sessions, job, result=output)
+            updated = await asyncio.to_thread(finish_job, sessions, job, result=output)
+            if updated:
+                JOB_RESULTS.labels(job_type=job_type, outcome="completed").inc()
+                logger.info("worker_job_completed job_type=%s duration_ms=%.1f",
+                            job_type, (time.monotonic() - started) * 1000)
+            else:
+                FENCING_CONFLICTS.inc()
+                logger.warning("worker_stale_result_rejected job_type=%s", job_type)
         except Exception as exc:
             from .generation import GroundingError
             from .compliance_documents import MissingAuditDocument
-            await asyncio.to_thread(finish_job, sessions, job,
-                                    error=type(exc).__name__,
-                                    permanent=isinstance(exc, (GroundingError, MissingAuditDocument)))
+            permanent = isinstance(exc, (GroundingError, MissingAuditDocument))
+            outcome = "failed" if permanent or job["attempts"] >= MAX_ATTEMPTS else "retrying"
+            updated = await asyncio.to_thread(finish_job, sessions, job,
+                                              error=type(exc).__name__, permanent=permanent)
+            if updated:
+                JOB_RESULTS.labels(job_type=job_type, outcome=outcome).inc()
+                logger.warning("worker_job_error job_type=%s outcome=%s error_type=%s",
+                               job_type, outcome, type(exc).__name__)
+            else:
+                FENCING_CONFLICTS.inc()
+                logger.warning("worker_stale_error_rejected job_type=%s", job_type)
+        finally:
+            JOB_DURATION.labels(job_type=job_type).observe(time.monotonic() - started)
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO,
+                        format="%(asctime)s %(levelname)s %(name)s %(message)s")
     asyncio.run(run_forever())
