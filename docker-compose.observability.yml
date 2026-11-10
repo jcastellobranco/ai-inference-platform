@@ -81,7 +81,7 @@ services:
       VERSION: "1"
       POST: "0"
       IMAGES: "0"
-      NETWORKS: "0"
+      NETWORKS: "1"
       SERVICES: "0"
       EXEC: "0"
       AUTH: "0"
