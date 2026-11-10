@@ -58,15 +58,38 @@ def browser_identity(request: Request):
     return {"subject": str(row["id"]), "tenant": str(UUID(str(row["tenant_id"]))),
             "email": row["email"], "csrf_hash": row["csrf_hash"]}
 
+
+def throttle(email: str, request: Request) -> None:
+    # Never trust forwarded headers from arbitrary clients.
+    remote = request.client.host if request.client else "unknown"
+    key = digest(remote + "|" + email)
+    with SessionLocal.begin() as db:
+        row = db.execute(text("""
+          INSERT INTO auth_attempts(identity_hash, attempts, window_start)
+          VALUES (:key, 1, now())
+          ON CONFLICT (identity_hash) DO UPDATE
+          SET attempts = CASE WHEN auth_attempts.window_start < now() - interval '15 minutes'
+                              THEN 1 ELSE auth_attempts.attempts + 1 END,
+              window_start = CASE WHEN auth_attempts.window_start < now() - interval '15 minutes'
+                                  THEN now() ELSE auth_attempts.window_start END
+          RETURNING attempts
+        """), {"key": key}).scalar_one()
+    if row > 10:
+        raise HTTPException(429, "Too many login attempts; retry later")
+
+def validate_origin(request: Request) -> None:
+    origin = request.headers.get("origin")
+    if not origin:
+        return
+    from urllib.parse import urlsplit
+    parsed = urlsplit(origin)
+    if (parsed.scheme, parsed.netloc) != (request.url.scheme, request.url.netloc):
+        raise HTTPException(403, "Invalid request origin")
+
 def require_csrf(request: Request, identity: dict) -> None:
     if request.method in {"GET", "HEAD", "OPTIONS"}:
         return
-    origin = request.headers.get("origin")
-    if origin:
-        from urllib.parse import urlsplit
-        parsed = urlsplit(origin)
-        if (parsed.scheme, parsed.netloc) != (request.url.scheme, request.url.netloc):
-            raise HTTPException(403, "Invalid request origin")
+    validate_origin(request)
     token = request.headers.get("x-csrf-token", "")
     cookie = request.cookies.get(CSRF_COOKIE, "")
     if not token or not cookie or not secrets.compare_digest(token, cookie) or not secrets.compare_digest(digest(token), identity["csrf_hash"]):
@@ -78,7 +101,9 @@ def limited_registration() -> str:
 
 @router.post("/register", status_code=201)
 def register(body: Credentials, request: Request, response: Response):
+    validate_origin(request)
     email = body.email.lower()
+    throttle(email, request)
     if not limited_registration() or email != limited_registration():
         raise HTTPException(403, "Self-registration disabled")
     with SessionLocal.begin() as db:
@@ -97,6 +122,8 @@ def register(body: Credentials, request: Request, response: Response):
 
 @router.post("/login")
 def login(body: Credentials, request: Request, response: Response):
+    validate_origin(request)
+    throttle(body.email.lower(), request)
     # Same response for unknown account and incorrect password.
     with SessionLocal() as db:
         row = db.execute(text("SELECT id,email,tenant_id,password_hash FROM app_users WHERE email=:email"),
