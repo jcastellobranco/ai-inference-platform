@@ -114,8 +114,18 @@ nonzero rate charts.
 make logs-observability
 make smoke-observability # wait up to 60 seconds for all four Prometheus targets
 make smoke-alerts         # verify four active Grafana-managed alert rules
-make down-observability  # preserves PostgreSQL and monitoring volumes
+make stop-observability  # pause every ATLAS service without removing containers/volumes
+make start-observability # resume the same containers, without rebuilding
+make down-observability  # removes containers/networks but preserves named volumes
 ```
+
+**Pause vs. teardown:** `make stop-observability` and `make start-observability`
+operate on the complete Compose stack (including databases, Redis, Grafana,
+Loki and workers), keeping container identities, named volumes and data.
+`start-observability` only resumes containers that already exist; on a fresh
+checkout, run `make up-observability` instead. `make down-observability`
+removes containers and Compose networks but retains named volumes; never use
+`down -v` if you want to preserve data.
 
 Both UIs bind only to loopback, not public interfaces. Prometheus scrapes
 `backend:8000/metrics/`, `evaluation:8000/metrics/`, `rag:8000/metrics/`, and
