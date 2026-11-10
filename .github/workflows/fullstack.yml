@@ -54,6 +54,7 @@ jobs:
         env:
           PYTHONPATH: backend
           TEST_DATABASE_URL: postgresql+psycopg://platform_runtime:local-development-only@localhost:5432/platform
+          TEST_OWNER_DATABASE_URL: postgresql+psycopg://app:app@localhost:5432/platform
           WORKER_TEST_DATABASE_URL: postgresql+psycopg://platform_worker:local-worker-development-only@localhost:5432/platform
         run: pytest backend/tests -q
   frontend:
