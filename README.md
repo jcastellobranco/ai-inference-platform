@@ -113,6 +113,7 @@ nonzero rate charts.
 ```bash
 make logs-observability
 make smoke-observability # wait up to 60 seconds for all four Prometheus targets
+make smoke-alerts         # verify four active Grafana-managed alert rules
 make down-observability  # preserves PostgreSQL and monitoring volumes
 ```
 
@@ -129,6 +130,14 @@ query `{platform="atlas",service="worker"}` (replace `worker` with `rag`,
 documents or credentials in log messages; the collector cannot guarantee
 redaction. The Docker socket proxy is restricted to read-only API operations
 but remains sensitive on a shared Docker daemon.
+
+Grafana also provisions **four local alerts**: queued jobs above 10 for 5 min,
+terminal worker failures above 20% (minimum 5 jobs in 10 min), RAG search
+p95 above 2 seconds (minimum 10 searches in 5 min), and RAG/worker target
+down for 2 min. Open **Grafana → Alerting → Alert rules** to inspect them.
+For outbound email/Discord/Slack/webhook notifications, add a **contact point**
+and route the `platform=atlas` label in **Notification policies**; rules alone
+do not guarantee delivery. See [ATLAS alerting runbook](https://github.com/jcastellobranco/llm-evaluation-observability/blob/main/docs/ATLAS_ALERTS.md).
 
 ## Minimal stack (without RAG/evaluation)
 
