@@ -3,6 +3,7 @@ from pathlib import Path
 import importlib.util
 import tempfile
 import unittest
+import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -84,6 +85,32 @@ class ObservabilityContracts(unittest.TestCase):
         self.assertIn("127.0.0.1:3000:3000", overlay)
         self.assertNotIn("3100:3100", overlay)
         self.assertIn("config-observability:", makefile)
+
+    def test_observability_pause_resume_keep_existing_containers_and_volumes(self):
+        """Make dry-run proves stop/start use the full overlay, not down/up."""
+        compose_files = (
+            "docker-compose.fullstack.yml",
+            "docker-compose.integrated.yml",
+            "docker-compose.agents.yml",
+            "docker-compose.redis.yml",
+            "docker-compose.observability.yml",
+        )
+        for target, verb in (("stop-observability", "stop"),
+                             ("start-observability", "start")):
+            with self.subTest(target=target):
+                result = subprocess.run(
+                    ["make", "-n", target], cwd=ROOT, check=True,
+                    capture_output=True, text=True,
+                )
+                command = result.stdout.strip()
+                self.assertTrue(command.startswith("docker compose -f "), command)
+                for file_name in compose_files:
+                    self.assertIn(f"-f {file_name}", command)
+                self.assertTrue(command.endswith(f" {verb}"), command)
+                self.assertNotIn(" down", command)
+                self.assertNotIn(" up ", command)
+                self.assertNotIn(" -v", command)
+                self.assertNotIn("--build", command)
 
 
 if __name__ == "__main__":
