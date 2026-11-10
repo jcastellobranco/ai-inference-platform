@@ -14,7 +14,17 @@ Reference portfolio platform for tenant-isolated, authenticated inference jobs, 
 - **Generation:** extractive by default; optional OpenAI-compatible chat-completions provider with numbered citations
 - **Tracing:** job-result stage timings for retrieval, generation and evaluation (not queue wait or UI polling)
 
-**Local-first policy:** AWS/Terraform is documentation-only and is not deployed. See [ATLAS local operating guide](docs/LOCAL_FIRST_ATLAS.md) for cost-free setup, optional Redis, repository boundaries, and later verification.\n\n## Developer golden paths (local, no cloud)
+**Local-first policy:** AWS/Terraform is documentation-only and is not deployed. See [ATLAS local operating guide](docs/LOCAL_FIRST_ATLAS.md) for cost-free setup, optional Redis, repository boundaries, and later verification.\n\n## ATLAS self-service CLI
+
+Generate a standalone service with optional JWT authentication, Prometheus metrics, PostgreSQL and Redis connection placeholders:
+
+```bash
+python3 scripts/atlas.py create-service billing-api --runtime fastapi --database postgres --cache redis --auth jwt --observability metrics
+```
+
+For Node.js use `--runtime node`. The generated service includes Compose, CI, starter tests, health endpoints and a machine-readable manifest. See [ATLAS CLI guide](docs/ATLAS_CLI.md) for security guarantees and known gaps.
+
+## Developer golden paths (local, no cloud)
 
 Use `make init` to create untracked local configuration and a Redis secret without overwriting existing values; then edit `.env` and run `make doctor`. Start with `make up`, `make up-rag`, `make up-agent`, or `make up-redis` depending on the services you need. Use `make config-redis` to validate the full Compose configuration without starting containers.
 
