@@ -1,0 +1,63 @@
+name: Local observability Compose contract
+on:
+  push:
+    paths:
+      - 'docker-compose.observability.yml'
+      - 'Makefile'
+      - '.github/workflows/observability-compose.yml'
+  pull_request:
+    paths:
+      - 'docker-compose.observability.yml'
+      - 'Makefile'
+      - '.github/workflows/observability-compose.yml'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ai-inference-platform
+      - uses: actions/checkout@v4
+        with:
+          repository: jcastellobranco/rag-document-intelligence
+          path: rag-document-intelligence
+      - uses: actions/checkout@v4
+        with:
+          repository: jcastellobranco/llm-evaluation-observability
+          path: llm-evaluation-observability
+      - uses: actions/checkout@v4
+        with:
+          repository: jcastellobranco/multi-agent-orchestration
+          path: multi-agent-orchestration
+      - uses: actions/checkout@v4
+        with:
+          repository: jcastellobranco/mcp-tool-platform
+          path: mcp-tool-platform
+      - name: Test read-only smoke checker offline
+        working-directory: ai-inference-platform
+        run: python3 -m unittest discover -s tests -p 'test_observability_smoke.py' -v
+      - name: Check sibling observability assets
+        run: |
+          test -f llm-evaluation-observability/observability/prometheus.yml
+          test -f llm-evaluation-observability/observability/loki.yml
+          test -f llm-evaluation-observability/observability/alloy.alloy
+          test -f llm-evaluation-observability/observability/grafana/provisioning/dashboards/json/atlas-container-logs.json
+          test -f rag-document-intelligence/src/rag_intelligence/metrics.py
+      - name: Generate local test-only secrets and validate all Compose overlays
+        working-directory: ai-inference-platform
+        run: |
+          python3 scripts/atlas_dev.py init
+          python3 - <<'PY'
+          from pathlib import Path
+          from secrets import token_urlsafe
+          path = Path(".env")
+          content = path.read_text()
+          for key in ("JWT_SECRET", "RAG_DB_OWNER_PASSWORD", "RAG_API_KEY",
+                      "EVAL_API_KEY", "ATLAS_AGENT_SERVICE_KEY", "ATLAS_CACHE_HMAC_KEY"):
+              import re
+              content = re.sub(r"(?m)^" + key + r"=.*$", key + "=" + token_urlsafe(48), content)
+          path.write_text(content)
+          PY
+          make config-observability

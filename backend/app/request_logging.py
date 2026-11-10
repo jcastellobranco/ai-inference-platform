@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from starlette.middleware.base import BaseHTTPMiddleware
 
-logger = logging.getLogger("atlas.http")
+logger = logging.getLogger("uvicorn.error")
 from .telemetry import REQUESTS, LATENCY
 
 
