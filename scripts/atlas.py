@@ -5,10 +5,15 @@ No cloud calls, secrets, Docker invocation or automatic changes to existing serv
 from __future__ import annotations
 import argparse
 import json
+import os
 from pathlib import Path
 import sys
+import tempfile
 
-from scaffold_service import ROOT, scaffold
+from scaffold_service import ROOT, NAME, scaffold
+from atlas_runtime import enhance
+from atlas_security import harden_auth
+from atlas_registry import catalog, validate_service
 
 def extend_fastapi(target: Path, auth: bool, metrics: bool) -> None:
     requirements = target / "requirements.txt"
@@ -129,25 +134,78 @@ def extend_node(target: Path, auth: bool, metrics: bool) -> None:
               "      JWT_AUDIENCE: ${JWT_AUDIENCE:-atlas-services}"))
 
 def create(args) -> int:
-    if args.auth != "none" and args.auth != "jwt":
-        raise ValueError("Unsupported authentication mode")
-    if args.observability not in ("none", "metrics"):
-        raise ValueError("Unsupported observability mode")
-    target = scaffold(args.name, args.destination, runtime=args.runtime,
-                      postgres=args.database == "postgres", redis=args.cache == "redis")
-    if args.runtime == "fastapi":
-        extend_fastapi(target, args.auth == "jwt", args.observability == "metrics")
-    else:
-        extend_node(target, args.auth == "jwt", args.observability == "metrics")
-    manifest = {"schema_version": 1, "name": args.name, "runtime": args.runtime,
-                "database": args.database, "cache": args.cache, "auth": args.auth,
-                "observability": args.observability}
-    (target / "atlas-service.json").write_text(json.dumps(manifest, indent=2) + "\n")
-    (target / "README.md").write_text((target / "README.md").read_text() +
-          "\nGenerated optional capabilities are starter integrations, not production security certification.\n"
-          "JWT mode validates HS256 signature, issuer, audience, expiry, subject and tenant.\n"
-          "Metrics mode exposes /metrics; it does not yet provide distributed tracing.\n"
-          "Database/cache flags create configuration placeholders, not database migrations or connection pools.\n")
+    if not NAME.fullmatch(args.name) or len(args.name) > 48:
+        raise ValueError("Use lowercase kebab-case service name (max 48 chars)")
+    destination = Path(args.destination).expanduser().resolve()
+    destination.mkdir(parents=True, exist_ok=True)
+    target = destination / args.name
+    lock = destination / (".atlas-create-" + args.name + ".lock")
+    fd = os.open(lock, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    os.close(fd)
+    try:
+        if target.exists() or target.is_symlink():
+            raise FileExistsError(f"Service exists: {target}")
+        with tempfile.TemporaryDirectory(dir=destination, prefix=".atlas-stage-") as temporary:
+            staged = scaffold(args.name, Path(temporary), runtime=args.runtime,
+                              postgres=args.database == "postgres",
+                              redis=args.cache == "redis")
+            if args.runtime == "fastapi":
+                extend_fastapi(staged, args.auth == "jwt",
+                               args.observability == "metrics")
+            else:
+                extend_node(staged, args.auth == "jwt",
+                            args.observability == "metrics")
+            enhance(staged, args.runtime, postgres=args.database == "postgres",
+                    redis=args.cache == "redis", metrics=args.observability == "metrics")
+            if args.auth == "jwt":
+                harden_auth(staged, args.runtime)
+            else:
+                scripts = staged / "scripts"
+                scripts.mkdir(exist_ok=True)
+                (scripts / "init_local.py").write_text(
+                    '"""Initialize local configuration once."""\n'
+                    'from pathlib import Path\nimport os\n'
+                    'root = Path(__file__).resolve().parent.parent\n'
+                    'source = root / ".env.example"\n'
+                    'target = root / ".env"\n'
+                    'if not target.exists():\n'
+                    '    fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)\n'
+                    '    with os.fdopen(fd, "w") as output:\n'
+                    '        output.write(source.read_text())\n'
+                )
+                (staged / "Makefile").write_text(
+                    ".PHONY: init config up down logs test\n"
+                    "init:\n\t@python3 scripts/init_local.py\n"
+                    "config:\n\t@docker compose config --quiet\n"
+                    "up:\n\t@docker compose up -d --build\n"
+                    "down:\n\t@docker compose down\n"
+                    "logs:\n\t@docker compose logs -f --tail=100\n"
+                    + ("test:\n\t@python3 -m pytest -q\n"
+                       if args.runtime == "fastapi" else "test:\n\t@npm test\n")
+                )
+            compose = staged / "compose.yaml"
+            compose.write_text(compose.read_text().replace(
+                "'127.0.0.1:8000:8000'",
+                "'127.0.0.1:$"+"{ATLAS_HOST_PORT:-8000}:8000'"))
+            manifest = {"schema_version": 1, "name": args.name, "runtime": args.runtime,
+                        "database": args.database, "cache": args.cache,
+                        "auth": args.auth, "observability": args.observability}
+            (staged / "atlas-service.json").write_text(
+                json.dumps(manifest, indent=2) + "\n")
+            (staged / "README.md").write_text(
+                (staged / "README.md").read_text() +
+                "\nRun `make init` then `make up`. "
+                "Use ATLAS_HOST_PORT for multiple local services. "
+                "Dependencies have real readiness probes, but no migrations "
+                "or tenant authorization policies are created.\n")
+            errors = validate_service(staged)
+            if errors:
+                raise ValueError("Generated service contract failed: " + "; ".join(errors))
+            if target.exists() or target.is_symlink():
+                raise FileExistsError(f"Service exists: {target}")
+            staged.rename(target)
+    finally:
+        lock.unlink(missing_ok=True)
     print(f"Created {target}")
     return 0
 
@@ -155,6 +213,22 @@ def inspect(path: Path) -> int:
     manifest = json.loads((path / "atlas-service.json").read_text())
     print(json.dumps(manifest, indent=2))
     return 0
+
+def validate(path: Path) -> int:
+    errors = validate_service(path.resolve())
+    if errors:
+        for issue in errors:
+            print(f"FAIL: {issue}", file=sys.stderr)
+        return 1
+    print(f"PASS: {path} satisfies static ATLAS contracts")
+    return 0
+
+
+def list_catalog(root: Path) -> int:
+    records = catalog(root.resolve())
+    print(json.dumps(records, indent=2))
+    return 1 if any(not item["valid"] for item in records) else 0
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(prog="atlas", description=__doc__)
@@ -167,11 +241,21 @@ def main() -> int:
     create_cmd.add_argument("--cache", choices=("none", "redis"), default="none")
     create_cmd.add_argument("--auth", choices=("none", "jwt"), default="none")
     create_cmd.add_argument("--observability", choices=("none", "metrics"), default="none")
+    validate_cmd = subs.add_parser("validate")
+    validate_cmd.add_argument("path", type=Path)
+    catalog_cmd = subs.add_parser("catalog")
+    catalog_cmd.add_argument("--root", type=Path, default=ROOT.parent)
     inspect_cmd = subs.add_parser("inspect")
     inspect_cmd.add_argument("path", type=Path)
     args = parser.parse_args()
     try:
-        return create(args) if args.command == "create-service" else inspect(args.path)
+        if args.command == "create-service":
+            return create(args)
+        if args.command == "inspect":
+            return inspect(args.path)
+        if args.command == "validate":
+            return validate(args.path)
+        return list_catalog(args.root)
     except (OSError, ValueError, KeyError, json.JSONDecodeError) as exc:
         print(f"atlas: {exc}", file=sys.stderr)
         return 1

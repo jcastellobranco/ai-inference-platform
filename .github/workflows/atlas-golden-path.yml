@@ -1,0 +1,115 @@
+name: ATLAS Golden Path verification
+
+on:
+  push:
+    paths:
+      - 'scripts/atlas.py'
+      - 'scripts/atlas_runtime.py'
+      - 'scripts/atlas_security.py'
+      - 'scripts/atlas_registry.py'
+      - 'scripts/scaffold_service.py'
+      - 'tests/test_atlas_golden_path_release.py'
+      - '.github/workflows/atlas-golden-path.yml'
+  pull_request:
+    paths:
+      - 'scripts/atlas.py'
+      - 'scripts/atlas_runtime.py'
+      - 'scripts/atlas_security.py'
+      - 'scripts/atlas_registry.py'
+      - 'scripts/scaffold_service.py'
+      - 'tests/test_atlas_golden_path_release.py'
+      - '.github/workflows/atlas-golden-path.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generator-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Python syntax
+        run: python -m compileall -q scripts/atlas.py scripts/atlas_runtime.py scripts/atlas_security.py scripts/atlas_registry.py scripts/scaffold_service.py
+      - name: Offline generator tests
+        run: python -m unittest discover -s tests -p 'test_atlas_golden_path_release.py' -v
+
+  generated-service-smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: python-all
+            runtime: fastapi
+            database: postgres
+            cache: redis
+            auth: jwt
+            observability: metrics
+          - name: python-minimal
+            runtime: fastapi
+            database: none
+            cache: none
+            auth: none
+            observability: none
+          - name: node-all
+            runtime: node
+            database: postgres
+            cache: redis
+            auth: jwt
+            observability: metrics
+          - name: node-minimal
+            runtime: node
+            database: none
+            cache: none
+            auth: none
+            observability: none
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate independent service
+        shell: bash
+        run: |
+          python3 scripts/atlas.py create-service "${{ matrix.name }}" \
+            --destination "$RUNNER_TEMP/atlas-services" \
+            --runtime "${{ matrix.runtime }}" \
+            --database "${{ matrix.database }}" \
+            --cache "${{ matrix.cache }}" \
+            --auth "${{ matrix.auth }}" \
+            --observability "${{ matrix.observability }}"
+          python3 scripts/atlas.py validate "$RUNNER_TEMP/atlas-services/${{ matrix.name }}"
+          python3 scripts/atlas.py catalog --root "$RUNNER_TEMP/atlas-services"
+      - name: Validate generated Compose and secrets
+        shell: bash
+        working-directory: ${{ runner.temp }}/atlas-services/${{ matrix.name }}
+        run: |
+          python3 scripts/init_local.py
+          if [ "${{ matrix.database }}" = "postgres" ]; then
+            echo "DATABASE_URL=postgresql://localhost:5432/atlas" >> .env
+          fi
+          if [ "${{ matrix.cache }}" = "redis" ]; then
+            echo "REDIS_URL=redis://localhost:6379/0" >> .env
+          fi
+          docker compose config --quiet
+      - name: Test generated FastAPI service
+        if: matrix.runtime == 'fastapi'
+        working-directory: ${{ runner.temp }}/atlas-services/${{ matrix.name }}
+        run: |
+          python3 -m pip install -r requirements-dev.txt
+          python3 -m compileall -q app tests
+          python3 -m pytest -q
+      - name: Test generated Node service
+        if: matrix.runtime == 'node'
+        working-directory: ${{ runner.temp }}/atlas-services/${{ matrix.name }}
+        run: |
+          npm install --no-audit --no-fund
+          node --check src/server.mjs
+          npm test

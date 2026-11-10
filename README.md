@@ -14,9 +14,11 @@ Reference portfolio platform for tenant-isolated, authenticated inference jobs, 
 - **Generation:** extractive by default; optional OpenAI-compatible chat-completions provider with numbered citations
 - **Tracing:** job-result stage timings for retrieval, generation and evaluation (not queue wait or UI polling)
 
-**Local-first policy:** AWS/Terraform is documentation-only and is not deployed. See [ATLAS local operating guide](docs/LOCAL_FIRST_ATLAS.md) for cost-free setup, optional Redis, repository boundaries, and later verification.\n\n## ATLAS self-service CLI
+**Local-first policy:** AWS/Terraform is documentation-only and is not deployed. See [ATLAS local operating guide](docs/LOCAL_FIRST_ATLAS.md) for cost-free setup, optional Redis, repository boundaries, and later verification.
 
-Generate a standalone service with optional JWT authentication, Prometheus metrics, PostgreSQL and Redis connection placeholders:
+## ATLAS self-service CLI
+
+Generate a standalone service with optional JWT authentication, Prometheus metrics, PostgreSQL/Redis client integration, dependency-aware readiness checks and file-backed JWT secrets:
 
 ```bash
 python3 scripts/atlas.py create-service billing-api --runtime fastapi --database postgres --cache redis --auth jwt --observability metrics
@@ -28,7 +30,7 @@ For Node.js use `--runtime node`. The generated service includes Compose, CI, st
 
 Use `make init` to create untracked local configuration and a Redis secret without overwriting existing values; then edit `.env` and run `make doctor`. Start with `make up`, `make up-rag`, `make up-agent`, or `make up-redis` depending on the services you need. Use `make config-redis` to validate the full Compose configuration without starting containers.
 
-Create an independent FastAPI or Node.js service with `make new-service NAME=my-service RUNTIME=fastapi` or `make new-service NAME=events-api RUNTIME=node POSTGRES=1 REDIS=1`. Templates include local Compose, healthchecks, starter tests and CI; auth/observability integration is not automatic.
+Use the complete Golden Path with `make atlas-create NAME=my-service RUNTIME=fastapi AUTH=jwt OBSERVABILITY=metrics` or `python3 scripts/atlas.py create-service events-api --runtime node --auth jwt --observability metrics`. Run `make init` inside each generated service before Compose. The older `make new-service` remains a minimal skeleton for compatibility. Use `python3 scripts/atlas.py validate ../my-service` or `python3 scripts/atlas.py catalog --root ..` to inspect generated service contracts.
 
 See [Developer Experience and Golden Paths](docs/DEVELOPER_EXPERIENCE.md).
 
