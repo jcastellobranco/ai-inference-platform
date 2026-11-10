@@ -10,7 +10,7 @@ export class ApiError extends Error {
 async function request<T>(
   path: string, token: string, options: RequestInit = {}, signal?: AbortSignal,
 ): Promise<T> {
-
+  if (!token.trim()) throw new ApiError(401, 'Sign in to your workspace.');
   const response = await fetch(BASE_URL + path, {
     ...options,
     signal,
