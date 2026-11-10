@@ -2,7 +2,7 @@
 import os
 from uuid import UUID
 import jwt
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 from sqlalchemy import text
@@ -15,7 +15,9 @@ app = FastAPI(title="Multi-Tenant AI Platform", version="0.1.0")
 app.add_middleware(RequestLoggingMiddleware)
 app.mount('/metrics', metrics_app)
 configure_telemetry(app)
-bearer = HTTPBearer()
+bearer = HTTPBearer(auto_error=False)
+from .browser_auth import router as browser_auth_router, browser_identity, require_csrf
+app.include_router(browser_auth_router)
 ISSUER = os.environ.get("JWT_ISSUER", "portfolio-dev")
 AUDIENCE = os.environ.get("JWT_AUDIENCE", "ai-platform")
 SECRET = os.environ.get("JWT_SECRET")
@@ -34,16 +36,26 @@ class RagJobCreate(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
     reference_answer: str | None = Field(default=None, min_length=1, max_length=16000)
 
-def principal(credentials: HTTPAuthorizationCredentials = Depends(bearer)):
-    if not SECRET or len(SECRET) < 32:
-        raise HTTPException(503, "JWT secret not configured securely")
-    try:
-        claims = jwt.decode(credentials.credentials, SECRET, algorithms=["HS256"], issuer=ISSUER, audience=AUDIENCE, options={"require": ["sub", "tenant_id", "exp", "iss", "aud"]})
-        tenant = str(UUID(claims["tenant_id"]))
-        enforce_rate_limit(tenant, claims["sub"])
-        return {"subject": claims["sub"], "tenant": tenant}
-    except (jwt.PyJWTError, ValueError, KeyError):
-        raise HTTPException(401, "Invalid token")
+def principal(request: Request, credentials: HTTPAuthorizationCredentials | None = Depends(bearer)):
+    # Bearer tokens remain supported for service integrations and legacy scripts.
+    if credentials:
+        if not SECRET or len(SECRET) < 32:
+            raise HTTPException(503, "JWT secret not configured securely")
+        try:
+            claims = jwt.decode(credentials.credentials, SECRET, algorithms=["HS256"],
+                                issuer=ISSUER, audience=AUDIENCE,
+                                options={"require": ["sub", "tenant_id", "exp", "iss", "aud"]})
+            tenant = str(UUID(claims["tenant_id"]))
+            enforce_rate_limit(tenant, claims["sub"])
+            return {"subject": claims["sub"], "tenant": tenant}
+        except (jwt.PyJWTError, ValueError, KeyError):
+            raise HTTPException(401, "Invalid token")
+    identity = browser_identity(request)
+    if not identity:
+        raise HTTPException(401, "Not authenticated")
+    require_csrf(request, identity)
+    enforce_rate_limit(identity["tenant"], identity["subject"])
+    return identity
 
 @app.get("/health/live")
 def live():

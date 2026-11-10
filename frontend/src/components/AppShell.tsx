@@ -34,7 +34,7 @@ export function AppShell({ view, onNavigate, connected, children, onOpenAccess }
         <div className="sidebar-info"><span className="pulse" /> LOCAL WORKSPACE</div>
         <p>Developer environment</p>
         <Button variant="unstyled" className="sidebar-access" type="button" onClick={onOpenAccess}>
-          <span>◇</span> {connected ? 'Manage access' : 'Connect your JWT'} <span>↗</span>
+          <span>◇</span> {connected ? 'Manage access' : 'Sign in'} <span>↗</span>
         </Button>
         <p className="sidebar-caption">RAG · AGENTS · MCP · EVALUATION</p>
       </div>
@@ -46,7 +46,7 @@ export function AppShell({ view, onNavigate, connected, children, onOpenAccess }
         </div>
         <Button variant="unstyled" className="connection-chip" type="button" onClick={onOpenAccess}>
           <span className={`connection-indicator ${connected ? 'connected' : ''}`} />
-          {connected ? 'JWT connected' : 'Not connected'} <span>⌄</span>
+          {connected ? 'Signed in' : 'Not connected'} <span>⌄</span>
         </Button>
       </header>
       <main className="workspace-content">{children}</main>

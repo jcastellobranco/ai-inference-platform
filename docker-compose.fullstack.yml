@@ -41,6 +41,7 @@ services:
         fi
         psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/010_compliance_workflow.sql
         psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/011_compliance_documents.sql
+        psql -h db -U app -d platform -v ON_ERROR_STOP=1 -f /migrations/012_browser_auth.sql
     restart: "no"
   backend:
     build:
@@ -51,6 +52,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET to a random 32+ character value}
       JWT_ISSUER: portfolio-dev
       JWT_AUDIENCE: ai-platform
+      ATLAS_BOOTSTRAP_EMAIL: ${ATLAS_BOOTSTRAP_EMAIL:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
       RAG_SERVICE_TENANT_ID: ${RAG_SERVICE_TENANT_ID:-}
       RAG_SERVICE_URL: ${RAG_SERVICE_URL:-}
       RAG_SERVICE_API_KEY: ${RAG_SERVICE_API_KEY:-}
