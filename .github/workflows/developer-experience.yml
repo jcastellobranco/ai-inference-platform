@@ -4,6 +4,9 @@ on:
     paths:
       - 'scripts/atlas_dev.py'
       - 'scripts/scaffold_service.py'
+      - 'scripts/atlas.py'
+      - 'atlas'
+      - 'tests/test_atlas_cli.py'
       - 'tests/test_developer_experience.py'
       - 'Makefile'
       - '.github/workflows/developer-experience.yml'
@@ -25,6 +28,8 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile developer scripts
-        run: python -m compileall -q scripts/atlas_dev.py scripts/scaffold_service.py tests/test_developer_experience.py
+        run: python -m compileall -q scripts/atlas_dev.py scripts/scaffold_service.py scripts/atlas.py tests/test_developer_experience.py tests/test_atlas_cli.py
+      - name: Run CLI contract tests
+        run: python -m unittest discover -s tests -p 'test_atlas_cli.py' -v
       - name: Run offline developer workflow tests
         run: python -m unittest discover -s tests -p 'test_developer_experience.py' -v
