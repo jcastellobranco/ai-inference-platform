@@ -16,7 +16,7 @@ async function request<T>(
     signal,
     credentials: 'same-origin',
     headers: {
-      ...(document.cookie.match(/(?:^|; )atlas_csrf=([^;]*)/)?.[1] && !['GET','HEAD'].includes(options.method || 'GET') ? { 'X-CSRF-Token': decodeURIComponent(document.cookie.match(/(?:^|; )atlas_csrf=([^;]*)/)![1]) } : {}),
+      ...((typeof document !== 'undefined' ? document.cookie : '').match(/(?:^|; )atlas_csrf=([^;]*)/)?.[1] && !['GET','HEAD'].includes(options.method || 'GET') ? { 'X-CSRF-Token': decodeURIComponent((typeof document !== 'undefined' ? document.cookie : '').match(/(?:^|; )atlas_csrf=([^;]*)/)![1]) } : {}),
       ...(token.trim() && token !== 'browser-session' ? { Authorization: `Bearer ${token.trim()}` } : {}),
       ...(options.body ? { 'Content-Type': 'application/json' } : {}),
       ...options.headers,
