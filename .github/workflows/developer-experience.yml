@@ -1,0 +1,30 @@
+name: Developer Experience checks
+on:
+  push:
+    paths:
+      - 'scripts/atlas_dev.py'
+      - 'scripts/scaffold_service.py'
+      - 'tests/test_developer_experience.py'
+      - 'Makefile'
+      - '.github/workflows/developer-experience.yml'
+  pull_request:
+    paths:
+      - 'scripts/atlas_dev.py'
+      - 'scripts/scaffold_service.py'
+      - 'tests/test_developer_experience.py'
+      - 'Makefile'
+      - '.github/workflows/developer-experience.yml'
+jobs:
+  offline-contracts:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile developer scripts
+        run: python -m compileall -q scripts/atlas_dev.py scripts/scaffold_service.py tests/test_developer_experience.py
+      - name: Run offline developer workflow tests
+        run: python -m unittest discover -s tests -p 'test_developer_experience.py' -v
