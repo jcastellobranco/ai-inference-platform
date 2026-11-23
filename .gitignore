@@ -11,6 +11,8 @@ __pycache__/
 venv/
 node_modules/
 dist/
+*.tsbuildinfo
+*.egg-info/
 coverage/
 .coverage
 *.sqlite3
