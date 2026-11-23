@@ -113,5 +113,26 @@ class ObservabilityContracts(unittest.TestCase):
                 self.assertNotIn("--build", command)
 
 
+    def test_smoke_targets_reuse_running_overlay(self):
+        """`compose run` must not recreate the worker without observability config."""
+        def dry_run(target, layer):
+            return subprocess.run(
+                ["make", "-n", target, f"SMOKE_LAYER={layer}"], cwd=ROOT,
+                check=True, capture_output=True, text=True,
+            ).stdout.strip()
+
+        for target in ("smoke-rag", "smoke-agent"):
+            with self.subTest(target=target, layer="observability"):
+                command = dry_run(target, "observability")
+                self.assertIn("-f docker-compose.observability.yml", command)
+                self.assertIn("-f docker-compose.redis.yml", command)
+        rag_only = dry_run("smoke-rag", "rag")
+        self.assertIn("-f docker-compose.integrated.yml", rag_only)
+        self.assertNotIn("docker-compose.agents.yml", rag_only)
+        agent_only = dry_run("smoke-agent", "rag")
+        self.assertIn("-f docker-compose.agents.yml", agent_only)
+        self.assertNotIn("docker-compose.observability.yml", agent_only)
+
+
 if __name__ == "__main__":
     unittest.main()

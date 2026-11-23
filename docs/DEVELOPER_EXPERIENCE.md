@@ -26,7 +26,7 @@ Choose integrations only when needed:
 | Agent and MCP | `make config-agent` | `make up-agent` |
 | Redis planner cache and API quotas | `make config-redis` | `make up-redis` |
 
-Optional integration checks: `make smoke-rag` and `make smoke-agent`. They require running Docker and correct secrets. The Makefile is designed for Linux/WSL/macOS with GNU Make and Python 3.
+Optional integration checks: `make smoke-rag` and `make smoke-agent`. They require running Docker and correct secrets. Both reuse the largest overlay already running (detected by `scripts/atlas_smoke_layer.sh`), because `docker compose run` would otherwise recreate the backend/worker with a smaller overlay and silently drop observability or Redis settings. Force a layer with `SMOKE_LAYER=observability|redis|agent|rag`. The Makefile is designed for Linux/WSL/macOS with GNU Make and Python 3.
 
 ## Golden Path v1 (preferred)
 

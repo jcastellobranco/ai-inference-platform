@@ -153,7 +153,7 @@ def harden_auth(target: Path, runtime: str) -> None:
     )
     doc = target / "README.md"
     doc.write_text(doc.read_text() +
-        "\nRun \`make init\` before Compose. The untracked JWT secret is mounted as "
+        "\nRun `make init` before Compose. The untracked JWT secret is mounted as "
         "a Compose file secret, never embedded in the YAML or environment. "
         "HS256 is a starter contract, not a production identity provider. "
         "Tenant-scoped access control must be implemented separately.\n")

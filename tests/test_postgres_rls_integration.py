@@ -8,7 +8,10 @@ from uuid import UUID, uuid4
 import psycopg
 import pytest
 from sqlalchemy import create_engine, text
-from testcontainers.postgres import PostgresContainer
+try:
+    from testcontainers.community.postgres import PostgresContainer
+except ImportError:  # testcontainers < 4.10 layout
+    from testcontainers.postgres import PostgresContainer
 
 MIGRATIONS = Path(__file__).resolve().parents[1] / "backend" / "migrations"
 TENANT_A = "11111111-1111-4111-8111-111111111111"
